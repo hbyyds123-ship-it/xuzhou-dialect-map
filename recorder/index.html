@@ -195,6 +195,31 @@
   .ok{color:var(--green) !important;}
   .no{color:var(--zhu) !important;}
   .note{font-size:11.5px; line-height:1.9; color:var(--ink2);}
+
+  /* 落印：纸面上盖一枚朱印 */
+  #stamp{
+    position: fixed; left: 50%; top: 46%;
+    transform: translate(-50%,-50%) rotate(-8deg) scale(.86);
+    width: 76px; height: 76px;
+    display: grid; place-items: center;
+    border: 3px solid var(--zhu); color: var(--zhu);
+    font-size: 36px; letter-spacing: .06em; font-family: "Songti SC","SimSun",serif;
+    opacity: 0; pointer-events: none; z-index: 70;
+    mix-blend-mode: multiply;
+    transition: opacity .12s ease, transform .18s cubic-bezier(.2,.9,.3,1.2);
+  }
+  #stamp.on{ opacity: .82; transform: translate(-50%,-50%) rotate(-8deg) scale(1); }
+
+  /* 分类进度 + 页脚：把"本卷还剩多少"说清楚 */
+  .byclass { display: grid; gap: 0; }
+  .bc-row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; padding: 5px 0; border-bottom: 1px dotted var(--rule); }
+  .bc-row span { letter-spacing: .1em; color: var(--ink); }
+  .bc-row i { flex: 1; height: 1px; background: var(--rule); }
+  .bc-row b { font-family: ui-monospace, Consolas, monospace; font-weight: 400; font-size: 11.5px; color: var(--ink-2); }
+  .bc-note { margin: 10px 0 0; font-size: 10.5px; line-height: 1.8; color: var(--ink-2); }
+  .sheet-foot { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 10.5px; letter-spacing: .08em; color: var(--ink-2); font-family: ui-monospace, Consolas, monospace; }
+  .sheet-foot b { font-weight: 400; color: var(--ink); }
+  #exportJson { letter-spacing: 0; }
 </style>
 </head>
 <body>
@@ -203,9 +228,9 @@
   <p class="backlink"><a href="../index.html">← 回《管！徐州》方言地图（学习模式）</a>　·　本目录下 54 道词表题由 <code>../data/atlas.js</code> 实时派生，改词表即改题</p>
 
   <header>
-    <h1>方言采样台<small>AT THIS MOMENT</small></h1>
+    <h1>方言采样台<small>田野记录 · 徐州</small></h1>
   </header>
-  <p class="sub">系统出题 → 我照着说 → 声调自动算成数字与曲线 → 存本地，不联网。给孩子的，是声音，不是文字。</p>
+  <p class="sub">系统出题 → 你照着说 → 声调当场算成曲线与读数 → 只存在这台电脑上，不联网。导出是一份能离线打开的单文件存档。</p>
 
   <div id="selfcheck"></div>
 
@@ -254,7 +279,7 @@
               </select>
             </div>
             <div class="wide">
-              <label for="fGloss">这个词/这句话，是什么意思（给孩子的释义，可留空）</label>
+              <label for="fGloss">释义（可留空）</label>
               <input id="fGloss" placeholder="例：肥皂">
             </div>
             <div>
@@ -301,7 +326,7 @@
       </section>
 
       <footer>
-        <button id="exportHtml" class="primary">导出自包含存档（给孩子的文件）</button>
+        <button id="exportHtml" class="primary">导出单文件存档（可离线打开）</button>
         <button id="exportJson" class="ghost">导出 JSON</button>
         <button id="quizBtn" class="ghost">开始听音选词</button>
         <button id="clearBtn" class="ghost">清空全部</button>
@@ -316,11 +341,18 @@
         <div id="bar"><div id="barFill"></div></div>
         <div id="list"><div class="empty">还没有录制</div></div>
       </div>
+      <div class="card">
+        <h2>分类进度</h2>
+        <div class="byclass" id="byClass"></div>
+        <p class="bc-note">≥4 字的题不出调型，只记音频（按裁决 D1）。</p>
+      </div>
     </aside>
   </div>
+  <footer class="sheet-foot">本卷共 <b id="ftTotal">—</b> 题 · 已录 <b id="ftDone">0</b> 题 · 录音只存本机</footer>
 </div>
 
 <div id="banner"></div>
+<div id="stamp" aria-hidden="true">录</div>
 
 <div id="consent">
   <div class="card">

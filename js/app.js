@@ -378,7 +378,7 @@
     const on = r.selected, hv = r.hovered;
     if (on) {
       r.capMat.emissive.setHex(0xA63B2A);
-      r.capMat.emissiveIntensity = 0.22;
+      r.capMat.emissiveIntensity = 0.13;
       r.lineGroup.children.forEach(l => {
         l.material.color.setHex(0xA63B2A);
         l.material.opacity = 0.85;
@@ -599,6 +599,7 @@
     $$('.spot-row', panelBody).forEach(function (r) {
       r.addEventListener('click', function () { openSpot(r.dataset.spot, true); });
     });
+
     wireSceneEntries();
     openPanel();
   }
@@ -669,6 +670,33 @@
     openPanel();
   }
 
+  /* ---------------------- 你家的说法（采样台 → 地图） ----------------------
+     采集的动机在"看"这一侧：录完的词如果在地图里听不到，这件事就白做了。
+     这里只读索引（localStorage）并按 clipId 从 IDB 取音频，没有录音就不出播放按钮，
+     绝不用合成音冒充"你家的说法"。 */
+  function saySection(w) {
+    const S = window.XZ && window.XZ.sample;
+    if (!S) return '';
+    const meta = S.metaFor(w.id);
+    if (meta && meta.clipId) {
+      const gens = ['孩子', '我这一代', '父辈', '祖辈'];
+      const who = [meta.speaker, meta.gen != null ? gens[meta.gen] : ''].filter(Boolean).join(' · ');
+      const n = (meta.clips && meta.clips.length) || 1;
+      return '<div class="p-sec"><h3>你家的说法</h3>' +
+        '<div class="say-row"><b class="say-w">' + esc(meta.saying || '（未填）') + '</b>' +
+        (who ? '<span class="say-who">' + esc(who) + '</span>' : '') +
+        '<span class="say-n">共 ' + n + ' 条</span></div>' +
+        '<div class="say-acts">' +
+        '<button class="say-play" data-say="' + esc(w.id) + '">▶ 播真人录音</button>' +
+        (S.served() ? '' : '<span class="say-note">需用 node serve.cjs 打开才能播放</span>') +
+        '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去采样台看全部</a>' +
+        '</div></div>';
+    }
+    return '<div class="p-sec"><h3>你家的说法</h3>' +
+      '<p class="say-empty">这个词你家还没录。</p>' +
+      '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去录一条</a></div>';
+  }
+
   function renderWordPanel(w) {
     const color = '#e8b54b';
     const spots = SPOTS.filter(s => s.word === w.w);
@@ -691,6 +719,7 @@
       /* 此前例句只替换了 `<`，`>` 与 `&` 与引号照样进 HTML —— 数据里一个 `<` 组合就能改写结构 */
       esc(w.e) + '</div></div>' +
       '</div>' +
+      saySection(w) +
       (link ? '<div class="p-sec"><h3>相关方言点</h3>' + link + '</div>' : '');
 
     $$('.spot-row', panelBody).forEach(function (r) {
@@ -1085,6 +1114,20 @@
     }
     renderWordPanel(w);
     hideHint();
+  });
+
+  /* 「播真人录音」用事件委托：词条面板每次渲染都会换掉 innerHTML，
+     把 listener 绑在按钮本身上，会绑到随后被替换掉的实例（实测点不动）。 */
+  document.addEventListener('click', function (e) {
+    const b = e.target && e.target.closest ? e.target.closest('.say-play') : null;
+    if (!b) return;
+    const id = b.getAttribute('data-say');
+    if (!id) return;
+    b.textContent = '播放中…';
+    window.XZ.sample.play(id).then(function (ok) {
+      b.textContent = ok ? '▶ 再播一次' : '▶ 播真人录音';
+      if (!ok) toast('这条录音没能播出来：文件可能已被删除，或浏览器拦截了这次播放。');
+    });
   });
 
   ROUTER.on('book', function () {

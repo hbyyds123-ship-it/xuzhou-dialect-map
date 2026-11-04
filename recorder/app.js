@@ -454,7 +454,7 @@ function stats(frames, levels) {
     // 说法文本是必填项 —— 没有它，「借音/意译/旧词延伸」就没有被统计的对象
     const saying = $('#fSaying').value.trim();
     if (!saying) {
-      banner('请先填「你家的说法」——这是这个作业的核心数据，不能空着。');
+      banner('请先填「你家的说法」——这是每条录音最要紧的一栏，不能空着。');
       $('#fSaying').focus();
       return;
     }
@@ -502,6 +502,7 @@ function stats(frames, levels) {
     rec0.stars = '★'.repeat(rec0.correct + 1); clearTimeout(bannerTimer); $('#banner').textContent = ''; $('#banner').classList.remove('on');
     await store.put(rec0);
     await reload();
+    stampOnce();
     // 跳到下一个还没录的题
     const done = new Set(S.clips.map((c) => c.promptId));
     let next = -1;
@@ -511,6 +512,18 @@ function stats(frames, levels) {
     }
     if (next >= 0) { S.idx = next; drawPrompt(); }
     else banner('全部 ' + P.length + ' 题都录过了。可以重录，或者导出存档。');
+  }
+
+  /* 落一枚「录」印：存下来这件事应该有个物理动作，而不是只闪一行提示 */
+  let stampTimer = 0;
+  function stampOnce() {
+    const el = document.getElementById('stamp');
+    if (!el) return;
+    el.classList.remove('on');
+    void el.offsetWidth;
+    el.classList.add('on');
+    clearTimeout(stampTimer);
+    stampTimer = setTimeout(() => el.classList.remove('on'), 1300);
   }
 
   /* ---------------- 测验：听音选词 ---------------- */
@@ -810,6 +823,15 @@ function encodeWavBase64(samples, sr) {
     });
 
     ensureConsent();
+    // 深链：#p=<atlasId 或 promptId> —— 从地图词条卡「去录一条 / 看全部」进来时直接定位到那一题
+    try {
+      const mm = /(?:^|[#&])p=([^&]+)/.exec(location.hash || '');
+      if (mm) {
+        const key = decodeURIComponent(mm[1]);
+        const k = P.findIndex((p) => p.atlasId === key || p.id === key || p.id === 'a-' + key);
+        if (k >= 0) S.idx = k;      // 找不到就停在第一题，不报错
+      }
+    } catch (e) { /* hash 不合法：忽略 */ }
     drawPrompt();
     try {
       S.clips = await store.all();
@@ -829,6 +851,24 @@ function encodeWavBase64(samples, sr) {
     const doneIds = new Set(S.clips.map((c) => c.promptId));
     $('#progress').textContent = doneIds.size + ' / ' + P.length + ' 题已录';
     $('#barFill').style.width = (P.length ? (doneIds.size / P.length * 100) : 0) + '%';
+
+    /* 分类进度：题目分 5 类，数字全部从 PROMPTS 现算，改题不用改这里 */
+    (function byClass() {
+      const groups = [['new', '新词'], ['old', '老词'], ['home', '家词'], ['sent', '句子'], ['atlas', '词表']];
+      const tot = {}, don = {};
+      P.forEach((p) => { const b = p.bucket || 'other'; tot[b] = (tot[b] || 0) + 1; });
+      P.forEach((p) => { if (doneIds.has(p.id)) { const b = p.bucket || 'other'; don[b] = (don[b] || 0) + 1; } });
+      const box = document.getElementById('byClass');
+      if (box) {
+        box.innerHTML = groups.map(([k, name]) =>
+          '<div class="bc-row"><span>' + name + '</span><i></i><b>' + (don[k] || 0) + ' / ' + (tot[k] || 0) + '</b></div>'
+        ).join('');
+      }
+      const ft = document.getElementById('ftDone');
+      if (ft) ft.textContent = String(doneIds.size);
+      const tt = document.getElementById('ftTotal');
+      if (tt) tt.textContent = String(P.length);
+    })();
 
     if (!S.clips.length) { $('#list').innerHTML = '<div class="empty">还没有录制</div>'; return; }
 

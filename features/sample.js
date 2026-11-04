@@ -141,13 +141,23 @@
     }).catch(function () { return false; });
   }
 
-  function play(atlasId) {
+  function play(atlasId, opts) {
     var m = metaFor(atlasId);
     if (!served() || !m || !m.clipId) return Promise.resolve(false);
     var who = m.speaker ? ' · ' + m.speaker : '';
     var n = (m.list && m.list.length) || (m.clips && m.clips.length) || 1;
-    return playClip(m.clipId,
-      '真人录音 · 你家的说法「' + (m.saying || '') + '」' + who + ' · 共 ' + n + ' 条，播最新一条');
+    var note = (opts && opts.quiet) ? '' :
+      '真人录音 · 你家的说法「' + (m.saying || '') + '」' + who + ' · 共 ' + n + ' 条，播最新一条';
+    return playClip(m.clipId, note);
+  }
+
+  /* 范本音（给定方言的教学录音）。模块缺席就当没有，不抛错 —— 
+     单独拷走 features/ 或脚本没加载时，行为必须和改动前一致。 */
+  function refs() { return window.XZ && window.XZ.refs; }
+  function hasRef(atlasId) { var R = refs(); return !!(R && R.has(atlasId)); }
+  function playRef(atlasId) {
+    var R = refs();
+    return (R && R.has(atlasId)) ? R.play(atlasId) : Promise.resolve(false);
   }
 
   /** 这个词的所有录音摘要（按时间倒序）；老索引没有 list 时返回空数组 */
@@ -157,19 +167,33 @@
   }
 
   /**
-   * 优先链：真人录音 → 合成音（并明标它是普通话合成）
-   * word 是 ATLAS.words 里的一条（含 id / w）；audio 是 quiz 自带的合成音封装。
+   * 优先链：真人录音 / 范本音 → 合成音（并明标它是普通话合成）
+   *
+   * opts.prefer = 'ref'    学习场景：先播范本音（给定方言才是要学的东西），
+   *                        没范本音再退回自家录音，都没有才合成。
+   * opts.prefer = 'family' 默认：先播自家的（地图词条、随便听听）。
+   *
+   * 返回值 'real' | 'ref' | 'synth' 决定界面上那行「这是谁的声音」。
    */
-  function speakOrSynth(word, audio, rate) {
+  function speakOrSynth(word, audio, rate, opts) {
     var id = word && (word.atlasId || word.id);
     if (!id) { if (audio) audio.speak(word && word.w, rate); return Promise.resolve('synth'); }
-    return play(id).then(function (ok) {
-      if (ok) return 'real';
-      if (audio) audio.speak(word.w, rate);
-      // 不再弹 toast：调用方（测验）已经把「普通话合成 · 不是徐州话」常驻写在播放键旁边，
-      // 再弹一次只会挡住题目内容，而且每次进关都弹。
-      return 'synth';
-    });
+
+    var quiet = { quiet: true };
+    var steps = (opts && opts.prefer === 'ref')
+      ? [['ref', function () { return playRef(id); }], ['real', function () { return play(id, quiet); }]]
+      : [['real', function () { return play(id, quiet); }], ['ref', function () { return playRef(id); }]];
+
+    function step(i) {
+      if (i >= steps.length) {
+        if (audio) audio.speak(word.w, rate);
+        return Promise.resolve('synth');
+      }
+      return Promise.resolve(steps[i][1]()).then(function (ok) {
+        return ok ? steps[i][0] : step(i + 1);
+      }, function () { return step(i + 1); });
+    }
+    return step(0);
   }
 
   function bindEntry() {
@@ -218,6 +242,8 @@
     },
     play: play,
     playClip: playClip,
+    playRef: playRef,
+    hasRef: hasRef,
     clipsFor: clipsFor,
     speakOrSynth: speakOrSynth,
     reloadIndex: reloadIndex

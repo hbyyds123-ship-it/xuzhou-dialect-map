@@ -7,7 +7,8 @@
     "audit": "node tools/audit-reachability.cjs",
     "smoke": "node tools/smoke.cjs",
     "build:portable": "node tools/build-portable.cjs",
-    "icon": "node portable/make-icon.cjs"
+    "icon": "node portable/make-icon.cjs",
+    "refs": "node tools/scan-refs.cjs"
   },
   "devDependencies": {
     "playwright": "^1.48.0",

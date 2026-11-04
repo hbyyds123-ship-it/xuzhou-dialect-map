@@ -494,3 +494,62 @@ body::after {
 .gen-who { font-size: 11px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gen-play { width: 24px; height: 24px; padding: 0; border: 1px solid var(--rule-strong); background: transparent; color: var(--ink); font-size: 11px; line-height: 1; cursor: pointer; }
 .gen-play:hover { background: var(--ink); color: var(--paper); }
+
+/* ==========================================================
+   范本音（给定方言的教学录音）
+   ----------------------------------------------------------
+   朱 = 你家的说法，靛 = 请发音人录的范本。两种音源必须一眼能分开，
+   否则用户分不清自己听到的是"我家的话"还是"标准的话"。
+   ========================================================== */
+:root { --dian: #2C4650; }
+
+.refs-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 0 11px; margin-bottom: 12px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.refs-btn {
+  border: 1px solid var(--rule-strong); background: transparent; color: var(--ink);
+  padding: 5px 11px; font-family: var(--serif); font-size: 12px; letter-spacing: .04em; cursor: pointer;
+}
+.refs-btn:hover { background: var(--ink); color: var(--paper); }
+.refs-btn.plain { border-color: var(--rule); color: var(--ink-2); }
+.refs-btn.plain:hover { background: var(--paper-2); color: var(--ink); }
+.refs-tip { font-size: 11px; color: var(--ink-2); line-height: 1.7; }
+.refs-tip code { font-family: var(--mono); font-size: 10.5px; color: var(--ink); }
+
+.refs-list { margin: 0 0 14px; border-top: 1px solid var(--ink); max-height: 210px; overflow: auto; }
+.ref-row {
+  display: grid; grid-template-columns: 72px minmax(0, 1fr) 48px 24px;
+  align-items: center; gap: 8px; padding: 5px 0;
+  border-bottom: 1px solid var(--rule); font-size: 12px;
+}
+.ref-w { font-family: var(--serif); font-size: 14px; color: var(--ink); }
+.ref-f { color: var(--ink-2); font-family: var(--mono); font-size: 10.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ref-tag { font-size: 10px; letter-spacing: .1em; color: var(--ink-2); }
+.ref-del {
+  width: 22px; height: 22px; padding: 0; line-height: 1;
+  border: 1px solid var(--rule); background: transparent; color: var(--ink-2);
+  font-size: 11px; cursor: pointer;
+}
+.ref-del:hover:not(:disabled) { border-color: var(--zhu); color: var(--zhu); }
+.ref-del:disabled { opacity: .35; cursor: not-allowed; }
+.refs-empty { margin: 10px 0; font-size: 12px; color: var(--ink-2); line-height: 1.85; }
+
+/* 拖文件进来时给个明确的投放区，不然用户不知道能不能往这儿扔 */
+.modal-card.drop { outline: 2px dashed var(--dian); outline-offset: -9px; }
+
+/* 词卡角标：♪ = 播范本音 */
+.bk-say.ref { border-color: var(--dian); color: var(--dian); }
+.bk-say.ref:hover { background: var(--dian); color: var(--paper); }
+
+/* 词条面板里的范本音按钮 */
+.say-play.ref { border-color: var(--dian); color: var(--dian); }
+.say-play.ref:hover { background: var(--dian); color: var(--paper); }
+
+/* 学习侧来源标注：范本音用靛，与"你家的录音"朱色分得开 */
+.q-src.ref { color: var(--dian); }
+
+/* 有真人录音、但这次自动播放被拦了：不能写成"合成音"，否则像丢数据 */
+.q-src.pending { color: var(--zhu); }

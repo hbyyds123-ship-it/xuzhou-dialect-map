@@ -35,23 +35,38 @@
      模块缺席（单独拷走 features/ 或脚本没加载）时行为与改动前完全一致。 */
   function speakWord(item, rate) {
     var S = window.XZ && window.XZ.sample && window.XZ.sample.speakOrSynth;
-    if (S && item) return S(item, audio, rate);
+    // 学习场景要听的是"给定方言"，所以范本音优先；没范本音才退回自家录音
+    if (S && item) return S(item, audio, rate, { prefer: 'ref' });
     if (item) audio.speak(item.w, rate);
     return Promise.resolve('synth');
   }
 
-  /* 「听发音」必须说清是谁的嘴：你家的录音，还是普通话合成。
+  /* 「听发音」必须说清是谁的嘴：范本音 / 你家的录音 / 普通话合成。
      学方言最忌讳的就是把合成音当范本——那等于在学普通话。
-     没有真人录音时，就把这句写在按钮旁边，而不是只弹一次 toast。 */
-  function markSource(src) {
+     来源常驻写在按钮旁边，而不是只弹一次 toast（弹完就忘，还挡题目）。 */
+  function markSource(src, item) {
     var el = root.querySelector('[data-src]');
     if (!el) return;
-    if (src === 'real') {
+    if (src === 'ref') {
+      el.textContent = '范本音 · 徐州话';
+      el.className = 'q-src ref';
+    } else if (src === 'real') {
       el.textContent = '你家的录音';
       el.className = 'q-src real';
     } else {
-      el.textContent = '普通话合成 · 不是徐州话';
-      el.className = 'q-src synth';
+      /* 落到合成音有两种原因：真的没有录音，或者浏览器拦了这次自动播放。
+         混为一谈会让人以为"录的东西丢了"——所以这里再看一眼有没有音源：
+         有就说"点 ▶ 播"，没有才承认是合成音。 */
+      var id = item && (item.atlasId || item.id);
+      var S = window.XZ && window.XZ.sample, R = window.XZ && window.XZ.refs;
+      var hasReal = !!(id && S && S.has(id)) || !!(id && R && R.has(id));
+      if (hasReal) {
+        el.textContent = '有真人录音 · 点 ▶ 播放';
+        el.className = 'q-src pending';
+      } else {
+        el.textContent = '普通话合成 · 不是徐州话';
+        el.className = 'q-src synth';
+      }
     }
   }
 
@@ -164,7 +179,7 @@
 
     q.locked = false;
     bind();
-    setTimeout(function () { if (q && !q.locked) speakWord(item, 0.72).then(markSource); }, 260);
+    setTimeout(function () { if (q && !q.locked) speakWord(item, 0.72).then(function (s) { markSource(s, item); }); }, 260);
   }
 
   function S0() { return window.XZ.store.get(); }
@@ -175,7 +190,8 @@
 
     var play = root.querySelector('[data-play]');
     if (play) play.addEventListener('click', function () {
-      speakWord(q.qs[q.i].item, 0.7).then(markSource);
+      var it = q.qs[q.i].item;
+      speakWord(it, 0.7).then(function (s) { markSource(s, it); });
       play.classList.add('on');
       setTimeout(function () { play.classList.remove('on'); }, 900);
     });

@@ -7,7 +7,7 @@
    （Node 22 的 SEA：Single Executable Application）。
 
    产物：
-     dist/徐州方言地图.exe        单文件，双击即用（约 85–90 MB）
+     dist/乡音册.exe              单文件，双击即用（约 85–90 MB）
      dist/使用说明.txt            给接收方的一页说明
 
    用法：node tools/build-portable.cjs
@@ -28,19 +28,21 @@ const ASSETS = [
   'index.html',
   'css/style.css', 'css/paper.css',
   'features/quiz.css', 'features/scene.css',
-  'features/sample.js', 'features/quiz.js', 'features/scene.js',
+  'features/sample.js', 'features/refs.js', 'features/quiz.js', 'features/scene.js',
   'js/app.js',
   'core/store.js', 'core/router.js',
-  'data/atlas.js', 'data/geo.xuzhou.js',
+  'data/atlas.js', 'data/refs.js', 'data/geo.xuzhou.js',
   'vendor/three.min.js', 'vendor/OrbitControls.js',
   'recorder/index.html', 'recorder/app.js', 'recorder/prompts.js', 'recorder/prompts-atlas.js'
 ];
 
-function walk(dir, out) {
-  fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true }).forEach((d) => {
+function walk(dir, out, re) {
+  const abs = path.join(ROOT, dir);
+  if (!fs.existsSync(abs)) return out;              // 可选目录（data/ref-audio 可能还没建）
+  fs.readdirSync(abs, { withFileTypes: true }).forEach((d) => {
     const rel = dir + '/' + d.name;
-    if (d.isDirectory()) walk(rel, out);
-    else if (/\.svg$/i.test(d.name)) out.push(rel);
+    if (d.isDirectory()) walk(rel, out, re);
+    else if (re.test(d.name)) out.push(rel);
   });
   return out;
 }
@@ -56,7 +58,10 @@ function run(cmd, args, opts) {
 }
 
 async function main() {
-  const files = ASSETS.concat(walk('assets/thumbs', []));
+  // 范本音是可选资源：有就一起打进 exe，没有也不该让打包失败
+  const files = ASSETS
+    .concat(walk('assets/thumbs', [], /\.svg$/i))
+    .concat(walk('data/ref-audio', [], /\.(mp3|wav|m4a|ogg|oga|webm|flac)$/i));
   const missing = files.filter((f) => !fs.existsSync(path.join(ROOT, f)));
   if (missing.length) throw new Error('缺文件：' + missing.join(', '));
 
@@ -84,7 +89,7 @@ async function main() {
 
   // 3) 复制 node 本体，再注入 blob
   const IS_MAC = process.platform === 'darwin';
-  const exe = path.join(DIST, IS_MAC ? '徐州方言地图' : EXE_NAME);
+  const exe = path.join(DIST, IS_MAC ? '乡音册' : EXE_NAME);
   fs.copyFileSync(process.execPath, exe);
   // macOS：node 本体带签名，注入前必须先去掉，装完再 ad-hoc 签名
   if (IS_MAC) {
@@ -131,10 +136,21 @@ async function main() {
     '乡音册 · 徐州方言档案（免安装版）',
     '',
     '怎么用',
-    '  1. 双击「徐州方言地图.exe」',
+    '  1. 双击「' + EXE_NAME + '」',
     '  2. 会弹出一个黑色的命令行窗口，浏览器自动打开《乡音册》',
     '  3. 右上角一排按钮里最下面那个麦克风，进采样台录音',
     '  4. 用完关掉那个黑窗口就行（服务随之停止）',
+    '',
+    '听发音到底在播什么',
+    '  「听发音」有三种来源，界面上会直接标出来：',
+    '    · 范本音 · 徐州话 —— 请发音人录的给定方言（最该学的那个）',
+    '    · 你家的录音     —— 你自己在采样台录的',
+    '    · 普通话合成     —— 两者都没有时的兜底，不是徐州话，别拿它当范本',
+    '',
+    '加范本音',
+    '  打开词条册，点「导入录音文件…」，或把 wav / mp3 直接拖进那个窗口。',
+    '  文件名用词条 id（maozi.mp3）或词本身（茅子.mp3）都认，可以在文件名前加序号。',
+    '  导入的录音只存在你这台机器的浏览器里，不会上传。',
     '',
     '为什么要有黑窗口',
     '  浏览器只在 http://127.0.0.1 这类本机地址上给麦克风权限，',

@@ -31,6 +31,14 @@ const MIME = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.ogg': 'audio/ogg',
+  '.oga': 'audio/ogg',
+  '.webm': 'audio/webm',
+  '.flac': 'audio/flac',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
   '.md': 'text/plain; charset=utf-8'
@@ -120,6 +128,11 @@ async function main() {
     checks.push(['地图脚本', js.code === 200 && js.body.includes('renderWordPanel')]);
     const rjs = await get(base + 'recorder/app.js');
     checks.push(['采样台脚本', rjs.code === 200 && rjs.body.includes('stampOnce')]);
+    // 范本音这条链是两个文件：清单 + 模块。少一个，界面上就静默没有"♪"
+    const refsData = await get(base + 'data/refs.js');
+    checks.push(['范本音清单', refsData.code === 200 && refsData.body.includes('window.REFS')]);
+    const refsJs = await get(base + 'features/refs.js');
+    checks.push(['范本音模块', refsJs.code === 200 && refsJs.body.includes('xz-dialect-refs')]);
     const three = await get(base + 'vendor/three.min.js');
     checks.push(['three.js', three.code === 200 && three.body.length > 100000]);
     checks.forEach(([n, ok]) => console.log((ok ? '✓ ' : '✗ ') + n));

@@ -705,6 +705,11 @@
     const S = window.XZ && window.XZ.sample;
     if (!S) return '';
     const meta = S.metaFor(w.id);
+    /* 范本音与自家录音是两回事：一个是"给定方言怎么念"，一个是"你家怎么念"。
+       两个都在就并排给，不互相顶替。 */
+    const refBtn = (window.XZ.refs && window.XZ.refs.has(w.id))
+      ? '<button class="say-play ref" data-ref="' + esc(w.id) + '">♪ 播范本音</button>'
+      : '';
     if (meta && meta.clipId) {
       const list = S.clipsFor(w.id);
       const who = [meta.speaker, meta.gen != null ? GEN_NAME[meta.gen] : ''].filter(Boolean).join(' · ');
@@ -718,13 +723,15 @@
             '<span class="say-n">共 ' + n + ' 条</span></div>') +
         '<div class="say-acts">' +
         '<button class="say-play" data-say="' + esc(w.id) + '">▶ ' + (table ? '播最新一条' : '播真人录音') + '</button>' +
+        refBtn +
         (S.served() ? '' : '<span class="say-note">需用 node serve.cjs 打开才能播放</span>') +
         '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去采录看全部</a>' +
         '</div></div>';
     }
     return '<div class="p-sec"><h3>你家的说法</h3>' +
-      '<p class="say-empty">这个词你家还没录。</p>' +
-      '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去录一条</a></div>';
+      '<p class="say-empty">这个词你家还没录。' + (refBtn ? '先听听范本音，再决定你家怎么念。' : '') + '</p>' +
+      '<div class="say-acts">' + refBtn +
+      '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去录一条</a></div></div>';
   }
 
   function renderWordPanel(w) {
@@ -999,27 +1006,85 @@
   });
 
   /* ---------- 图鉴 ---------- */
+  /* ---------------------- 词条册 ----------------------
+     这里合流两样东西：你录的（自家说法）和请人录的（范本音）。
+     角标按"先听哪个"排：▶ 自家录音 / ♪ 范本音 / ＋ 还没录。 */
+  let refsOpen = false;
+
+  function doImport(files) {
+    const R = window.XZ && window.XZ.refs;
+    if (!R) { toast('范本音模块没有加载。'); return; }
+    if (!files || !files.length) return;
+    R.importFiles(files).then(function (r) {
+      const names = r.ok.map(function (id) {
+        const w = WORDS.filter(x => x.id === id)[0];
+        return w ? w.w : id;
+      });
+      if (r.ok.length) {
+        refsOpen = true;
+        toast('已导入 ' + r.ok.length + ' 条范本音：' + names.slice(0, 8).join('、') +
+          (names.length > 8 ? ' 等' : '') +
+          (r.fail.length ? '；另有 ' + r.fail.length + ' 个文件对不上词条' : ''));
+      } else {
+        toast('没有导入成功：' + r.fail.length + ' 个文件对不上词条。' +
+          '文件名请用词条 id（maozi.mp3）或词本身（茅子.mp3）。');
+      }
+      openBook();
+    }, function (e) {
+      toast('导入失败：' + (e && e.message === 'too-large' ? '单个文件超过 24MB' : (e && e.message) || '未知原因'));
+    });
+  }
+
+  /* 拖拽只在词条册打开时接管，免得整页都变成投放区 */
+  function bindRefsDrop() {
+    if (modalCard.__refsDrop) return;
+    modalCard.__refsDrop = true;
+    modalCard.addEventListener('dragover', function (e) {
+      if (!modal.classList.contains('on')) return;
+      e.preventDefault();
+      modalCard.classList.add('drop');
+    });
+    modalCard.addEventListener('dragleave', function () { modalCard.classList.remove('drop'); });
+    modalCard.addEventListener('drop', function (e) {
+      if (!modal.classList.contains('on')) return;
+      e.preventDefault();
+      modalCard.classList.remove('drop');
+      const f = e.dataTransfer && e.dataTransfer.files;
+      if (f && f.length) doImport(f);
+    });
+  }
+
   function openBook() {
     const S = window.XZ && window.XZ.sample;
+    const R = window.XZ && window.XZ.refs;
     /* 录过就算收进来了：录音本身也是一种"收集"，不该因为没有闯关就不给看。
-       这条也顺手解决"先录后学"的顺序——用户可以先在采样台录自家说法。 */
+       有范本音同理——能听到这个词怎么念，就该让人看见它。
+       这条也顺手解决"先录后学"的顺序：可以先在采样台录自家说法。 */
     let items = WORDS.map(function (w) {
       const has = !!(S && S.has(w.id));
-      return { w: w, unlocked: SEL.isWordUnlocked(w.id) || has, has: has };
+      const ref = !!(R && R.has(w.id));
+      return { w: w, unlocked: SEL.isWordUnlocked(w.id) || has || ref, has: has, ref: ref };
     });
     const n = items.filter(i => i.unlocked).length;
     const rec = items.filter(i => i.has).length;
-    // 收进来的排前面：一屏 54 张卡，先给用户看他自己的东西
-    items.sort(function (a, b) { return (b.unlocked - a.unlocked) || (b.has - a.has); });
+    const refN = items.filter(i => i.ref).length;
+    // 收进来的排前面：一屏几十张卡，先给用户看他自己的东西
+    items.sort(function (a, b) {
+      return (b.unlocked - a.unlocked) || (b.has - a.has) || (b.ref - a.ref);
+    });
 
     let html = '';
     items.forEach(function (i) {
-      /* 每张词卡右下角一枚小按钮：已录 → 播真人录音；未录 → 进采样台录这个词。
-         一个角标把"学"和"录"接起来，不用先回地图找入口。 */
-      const badge = i.unlocked
-        ? '<button class="bk-say' + (i.has ? ' has' : '') + '" data-say="' + esc(i.w.id) + '" ' +
-          'aria-label="' + (i.has ? '播真人录音' : '录这个词') + '">' + (i.has ? '▶' : '＋') + '</button>'
-        : '';
+      /* 右下角一枚小角标，把"学 / 听 / 录"接起来，不用先回地图找入口：
+           ▶ 播你家的录音    ♪ 播范本音    ＋ 进采录录这个词 */
+      let badge = '';
+      if (i.unlocked) {
+        const mode = i.has ? 'has' : (i.ref ? 'ref' : 'rec');
+        const ch = i.has ? '▶' : (i.ref ? '♪' : '＋');
+        const label = i.has ? '播你家的录音' : (i.ref ? '播范本音' : '录这个词');
+        badge = '<button class="bk-say ' + mode + '" data-say="' + esc(i.w.id) + '" data-mode="' + mode +
+          '" aria-label="' + label + '">' + ch + '</button>';
+      }
       html += '<div class="bk' + (i.unlocked ? '' : ' lock') + '" data-word="' + esc(i.w.id) + '">' +
         badge +
         '<div class="bk-w">' + (i.unlocked ? esc(i.w.w) : '？？') + '</div>' +
@@ -1028,16 +1093,62 @@
         '</div>';
     });
 
+    const refList = (R ? R.list() : []);
+    const refListHTML = refsOpen
+      ? '<div class="refs-list">' + (refList.length
+          ? refList.map(function (r) {
+              const w = WORDS.filter(x => x.id === r.id)[0];
+              return '<div class="ref-row">' +
+                '<span class="ref-w">' + esc(w ? w.w : r.id) + '</span>' +
+                '<span class="ref-f">' + esc(r.name || '') + '</span>' +
+                '<span class="ref-tag">' + (r.bundled ? '随包' : '导入') + '</span>' +
+                '<button class="ref-del" data-ref-del="' + esc(r.id) + '"' +
+                  (r.bundled ? ' disabled title="随包分发的范本音要改 data/refs.js"' : '') + '>✕</button>' +
+                '</div>';
+            }).join('')
+          : '<p class="refs-empty">还没有范本音。请发音人按词条念一遍，把 wav / mp3 拖进这个窗口就行。</p>'
+        ) + '</div>'
+      : '';
+
     modalCard.innerHTML =
       '<div class="mc-head"><div><div class="mc-eyebrow">词条册</div>' +
       '<h2 class="mc-title" style="white-space:nowrap;font-size:19px">已收录 ' + n + ' / ' + items.length + ' 个词' +
       (rec ? '<span style="font-size:13px;color:var(--ink-2);margin-left:10px">已录 ' + rec + ' 条</span>' : '') +
+      (refN ? '<span style="font-size:13px;color:var(--ink-2);margin-left:10px">范本音 ' + refN + '</span>' : '') +
       '</h2></div>' +
       '<button class="mc-close" data-close>×</button></div>' +
+      '<div class="refs-bar">' +
+        '<button class="refs-btn" id="refImport">导入录音文件…</button>' +
+        '<button class="refs-btn plain" id="refToggle">' + (refsOpen ? '收起清单' : '范本音清单') + '</button>' +
+        '<span class="refs-tip">wav / mp3 可直接拖进这个窗口；文件名用词条 id（<code>maozi.mp3</code>）或词本身（<code>茅子.mp3</code>）</span>' +
+        '<input type="file" id="refFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" multiple hidden>' +
+      '</div>' + refListHTML +
       '<div class="book-grid">' + html + '</div>' +
       '<button class="btn-ghost" data-close style="margin-top:18px">关闭</button>';
 
     $$('[data-close]', modalCard).forEach(b => b.addEventListener('click', closeModal));
+
+    const imp = $('#refFile', modalCard), impBtn = $('#refImport', modalCard);
+    if (impBtn && imp) {
+      impBtn.addEventListener('click', function () { imp.click(); });
+      imp.addEventListener('change', function () { doImport(imp.files); imp.value = ''; });
+    }
+    const tg = $('#refToggle', modalCard);
+    if (tg) tg.addEventListener('click', function () { refsOpen = !refsOpen; openBook(); });
+
+    $$('[data-ref-del]', modalCard).forEach(function (b) {
+      b.addEventListener('click', function (e) {
+        e.stopPropagation();
+        const id = b.getAttribute('data-ref-del');
+        const w = WORDS.filter(x => x.id === id)[0];
+        window.XZ.refs.del(id).then(function () {
+          toast('已删除范本音：' + (w ? w.w : id));
+          openBook();
+        }, function () { toast('这条删不掉（随包分发的范本音要改 data/refs.js）。'); });
+      });
+    });
+
+    bindRefsDrop();
 
     // 词卡：点角标=听/录，点卡片本身=看这个词条
     $$('.bk', modalCard).forEach(function (el) {
@@ -1045,8 +1156,15 @@
         const b = e.target.closest ? e.target.closest('.bk-say') : null;
         if (b) {
           const id = b.getAttribute('data-say');
-          if (b.classList.contains('has')) {
+          const mode = b.getAttribute('data-mode');
+          if (mode === 'has') {
             window.XZ.sample.play(id).then(function (ok) { if (!ok) toast('这条录音没能播出来。'); });
+          } else if (mode === 'ref') {
+            b.textContent = '…';
+            window.XZ.refs.play(id).then(function (ok) {
+              b.textContent = '♪';
+              toast(ok ? '范本音 · 请发音人录的徐州话' : '范本音没能播出来：文件可能不在。');
+            });
           } else {
             location.href = 'recorder/#p=' + encodeURIComponent(id);
           }
@@ -1187,6 +1305,16 @@
   document.addEventListener('click', function (e) {
     const b = e.target && e.target.closest ? e.target.closest('.say-play') : null;
     if (!b) return;
+    const ref = b.getAttribute('data-ref');
+    if (ref) {
+      b.textContent = '…';
+      window.XZ.refs.play(ref).then(function (ok) {
+        b.textContent = ok ? '♪ 再听一次' : '♪ 播范本音';
+        if (ok) toast('范本音 · 请发音人录的徐州话');
+        else toast('范本音没能播出来：文件可能不在。');
+      });
+      return;
+    }
     const clip = b.getAttribute('data-clip');
     if (clip) {
       b.textContent = '…';

@@ -439,3 +439,26 @@ body::after {
 .quote .q-w { color: var(--ink) !important; }
 /* 浏览器的音频控件是系统配色，落在纸面上很跳：只去色，不改功能 */
 .clip audio { filter: grayscale(1) contrast(.9); opacity: .8; }
+
+/* ---------- 词条册卡片：右下角「听/录」角标 ---------- */
+.bk { position: relative; cursor: pointer; }
+.bk.lock { cursor: default; }
+.bk-say {
+  position: absolute; right: 8px; bottom: 8px;
+  width: 24px; height: 24px; padding: 0;
+  border: 1px solid var(--rule-strong); background: var(--paper);
+  color: var(--ink); font-size: 12px; line-height: 1; cursor: pointer;
+  display: grid; place-items: center;
+}
+.bk-say:hover { background: var(--ink); color: var(--paper); }
+.bk-say.has { border-color: var(--zhu); color: var(--zhu); }
+.bk-say.has:hover { background: var(--zhu); color: var(--paper); }
+
+/* 搜索框：去掉内边距后放大镜会压住 placeholder，补回来 */
+.searchbox { padding-left: 26px !important; }
+.searchbox .ic-search { left: 0 !important; }
+/* 词条册：多列成册，不要两列拉得老长 */
+.book-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)) !important; gap: 8px !important; }
+.modal-card { max-height: 84vh; overflow: auto; }
+.bk { min-height: 92px; padding: 12px 10px; }
+.bk-w { font-size: 20px; }

@@ -22,7 +22,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const TMP = path.join(ROOT, 'portable');
-const EXE_NAME = '徐州方言地图.exe';
+const EXE_NAME = '乡音册.exe';
 
 const ASSETS = [
   'index.html',
@@ -128,11 +128,11 @@ async function main() {
 
   // 5) 一页说明
   fs.writeFileSync(path.join(DIST, '使用说明.txt'), [
-    '管！徐州 · 徐州方言地图（免安装版）',
+    '乡音册 · 徐州方言档案（免安装版）',
     '',
     '怎么用',
     '  1. 双击「徐州方言地图.exe」',
-    '  2. 会弹出一个黑色的命令行窗口，浏览器自动打开地图',
+    '  2. 会弹出一个黑色的命令行窗口，浏览器自动打开《乡音册》',
     '  3. 右上角一排按钮里最下面那个麦克风，进采样台录音',
     '  4. 用完关掉那个黑窗口就行（服务随之停止）',
     '',

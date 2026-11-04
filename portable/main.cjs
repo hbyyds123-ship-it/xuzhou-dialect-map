@@ -111,7 +111,7 @@ async function main() {
     });
     const checks = [];
     const home = await get(base);
-    checks.push(['地图首页', home.code === 200 && home.body.includes('管！徐州')]);
+    checks.push(['地图首页', home.code === 200 && home.body.includes('乡音册')]);
     const rec = await get(base + 'recorder/');
     checks.push(['采样台', rec.code === 200 && rec.body.includes('方言采样台')]);
     const css = await get(base + 'css/paper.css');
@@ -130,7 +130,7 @@ async function main() {
   }
 
   console.log('');
-  console.log('  管！徐州 · 徐州方言地图');
+  console.log('  乡音册 · 徐州方言档案');
   console.log('  ─────────────────────────────');
   console.log('  地图    ' + base);
   console.log('  采样台  ' + base + 'recorder/');

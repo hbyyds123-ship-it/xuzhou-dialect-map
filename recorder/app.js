@@ -57,7 +57,7 @@
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
   const P = window.PROMPTS || [];
 
-  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《管！徐州》atlas.js' };
+  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《乡音册》词表' };
   /** 填补策略三分类：借音 / 意译 / 旧词延伸（导出后要能按这三类统计） */
   const STRATEGY = ['借音', '意译', '旧词延伸', '其他'];
   /** 判定人：策略归类必须标明是谁判的，记录者自评不当证据 */
@@ -341,14 +341,22 @@ function stats(frames, levels) {
   }
 
   /* ---------------- 渲染：题目 ---------------- */
+  const POS_KEY = 'xzdt.pos.v1';
+  let resumeHint = false;
+
   function drawPrompt() {
     const p = cur();
+    // 记住停在哪儿：93 道题一次录不完，下次进来接着上次，而不是从头
+    try { localStorage.setItem(POS_KEY, String(S.idx)); } catch (e) { }
     $('#bucketTag').className = 'tag ' + p.bucket;
     $('#bucketTag').textContent = BUCKET_NAME[p.bucket] || p.bucket;
     $('#promptText').textContent = p.text;
     $('#promptHint').textContent = p.hint || '';
     const done = S.clips.some((c) => c.promptId === p.id);
-    $('#promptIndex').textContent = '第 ' + (S.idx + 1) + ' / ' + P.length + (done ? ' · 已录过，可再录一条不同人的' : '');
+    $('#promptIndex').textContent = '第 ' + (S.idx + 1) + ' / ' + P.length +
+      (done ? ' · 已录过，可再录一条不同人的' : '') +
+      (resumeHint ? ' · 接着上次' : '');
+    if (resumeHint) { resumeHint = false; }
     $('#fGloss').value = p.gloss || '';
     $('#fSaying').value = '';
     $('#fSayingPy').value = '';
@@ -832,6 +840,17 @@ function encodeWavBase64(samples, sr) {
         if (k >= 0) S.idx = k;      // 找不到就停在第一题，不报错
       }
     } catch (e) { /* hash 不合法：忽略 */ }
+
+    // 没有深链就接着上次；从来没有过就从第 1 题开始
+    if (!/(?:^|[#&])p=/.test(location.hash || '')) {
+      try {
+        const last = Number(localStorage.getItem(POS_KEY));
+        if (Number.isFinite(last) && last > 0 && last < P.length) {
+          S.idx = last;
+          resumeHint = true;
+        }
+      } catch (e) { }
+    }
     drawPrompt();
     try {
       S.clips = await store.all();

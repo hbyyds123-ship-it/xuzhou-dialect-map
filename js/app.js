@@ -1,5 +1,5 @@
 /* ==========================================================
-   《管！徐州》— 徐州方言数字地图
+   《乡音册》— 徐州方言数字地图
    3D 地图 / 浮动图标 / 搜索 / 图鉴 / 方言挑战
    ========================================================== */
 (function () {
@@ -970,14 +970,28 @@
 
   /* ---------- 图鉴 ---------- */
   function openBook() {
+    const S = window.XZ && window.XZ.sample;
+    /* 录过就算收进来了：录音本身也是一种"收集"，不该因为没有闯关就不给看。
+       这条也顺手解决"先录后学"的顺序——用户可以先在采样台录自家说法。 */
     let items = WORDS.map(function (w) {
-      return { w: w, unlocked: SEL.isWordUnlocked(w.id) };
+      const has = !!(S && S.has(w.id));
+      return { w: w, unlocked: SEL.isWordUnlocked(w.id) || has, has: has };
     });
     const n = items.filter(i => i.unlocked).length;
+    const rec = items.filter(i => i.has).length;
+    // 收进来的排前面：一屏 54 张卡，先给用户看他自己的东西
+    items.sort(function (a, b) { return (b.unlocked - a.unlocked) || (b.has - a.has); });
 
     let html = '';
     items.forEach(function (i) {
-      html += '<div class="bk' + (i.unlocked ? '' : ' lock') + '">' +
+      /* 每张词卡右下角一枚小按钮：已录 → 播真人录音；未录 → 进采样台录这个词。
+         一个角标把"学"和"录"接起来，不用先回地图找入口。 */
+      const badge = i.unlocked
+        ? '<button class="bk-say' + (i.has ? ' has' : '') + '" data-say="' + esc(i.w.id) + '" ' +
+          'aria-label="' + (i.has ? '播真人录音' : '录这个词') + '">' + (i.has ? '▶' : '＋') + '</button>'
+        : '';
+      html += '<div class="bk' + (i.unlocked ? '' : ' lock') + '" data-word="' + esc(i.w.id) + '">' +
+        badge +
         '<div class="bk-w">' + (i.unlocked ? esc(i.w.w) : '？？') + '</div>' +
         '<div class="bk-p">' + (i.unlocked ? esc(i.w.p || '') : '未解锁') + '</div>' +
         '<div class="bk-m">' + (i.unlocked ? esc(i.w.m) : '闯关答对即可解锁') + '</div>' +
@@ -985,13 +999,35 @@
     });
 
     modalCard.innerHTML =
-      '<div class="mc-head"><div><div class="mc-eyebrow">方言图鉴</div>' +
-      '<h2 class="mc-title">已收录 ' + n + ' / ' + items.length + ' 个词</h2></div>' +
+      '<div class="mc-head"><div><div class="mc-eyebrow">词条册</div>' +
+      '<h2 class="mc-title" style="white-space:nowrap;font-size:19px">已收录 ' + n + ' / ' + items.length + ' 个词' +
+      (rec ? '<span style="font-size:13px;color:var(--ink-2);margin-left:10px">已录 ' + rec + ' 条</span>' : '') +
+      '</h2></div>' +
       '<button class="mc-close" data-close>×</button></div>' +
       '<div class="book-grid">' + html + '</div>' +
       '<button class="btn-ghost" data-close style="margin-top:18px">关闭</button>';
 
     $$('[data-close]', modalCard).forEach(b => b.addEventListener('click', closeModal));
+
+    // 词卡：点角标=听/录，点卡片本身=看这个词条
+    $$('.bk', modalCard).forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        const b = e.target.closest ? e.target.closest('.bk-say') : null;
+        if (b) {
+          const id = b.getAttribute('data-say');
+          if (b.classList.contains('has')) {
+            window.XZ.sample.play(id).then(function (ok) { if (!ok) toast('这条录音没能播出来。'); });
+          } else {
+            location.href = 'recorder/#p=' + encodeURIComponent(id);
+          }
+          return;
+        }
+        const id = el.getAttribute('data-word');
+        if (!id || el.classList.contains('lock')) return;
+        closeModal();
+        ROUTER.go('word', id);
+      });
+    });
     modal.classList.add('on');
   }
   // 走路由而不是直接开弹窗：这样地址栏反映"正在看图鉴"，浏览器返回键也有意义

@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>管！徐州 · 徐州方言数字地图</title>
-<meta name="description" content="徐州方言数字交互地图：10 个区县、20 处方言点，可旋转的 3D 彭城。">
+<title>乡音册 · 徐州方言档案</title>
+<meta name="description" content="乡音册：徐州方言的录、学、传。10 个区县、20 处方言点，可旋转的 3D 彭城，可录下自家的说法。">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="features/quiz.css">
 <link rel="stylesheet" href="features/scene.css">
@@ -19,10 +19,10 @@
 <!-- ================= 顶栏 ================= -->
 <header class="topbar">
   <div class="brand">
-    <div class="brand-mark"><span>管</span></div>
+    <div class="brand-mark"><span>乡</span></div>
     <div class="brand-txt">
-      <h1>管！徐州</h1>
-      <p>徐州方言数字地图<span class="dot">·</span>Dialect Atlas of Xuzhou</p>
+      <h1>乡音册</h1>
+      <p>徐州方言档案<span class="dot">·</span>记录 · 学习 · 传承</p>
     </div>
   </div>
 
@@ -67,13 +67,13 @@
   <button class="tb" id="btnReset" data-tip="复位视角" aria-label="复位视角">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12V5h7M20 12v7h-7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12a8 8 0 0 0 13.66 5.66M20 12A8 8 0 0 0 6.34 6.34" stroke-linecap="round" opacity=".45"/></svg>
   </button>
-  <button class="tb" id="btnChallenge" data-tip="方言挑战" aria-label="开始方言挑战">
+  <button class="tb" id="btnChallenge" data-tip="学几个词 · 听音选词" aria-label="开始方言挑战">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.4 5.2 5.6.7-4.2 3.9 1.1 5.6L12 15.6 7.1 18.4l1.1-5.6L4 8.9l5.6-.7z" stroke-linejoin="round"/></svg>
   </button>
-  <button class="tb" id="btnBook" data-tip="方言图鉴" aria-label="打开方言图鉴">
+  <button class="tb" id="btnBook" data-tip="词条册 · 已收录与录音" aria-label="打开词条册">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v18H6.5A2.5 2.5 0 0 0 4 23z" stroke-linejoin="round"/><path d="M8 8h7M8 12h5" stroke-linecap="round" opacity=".6"/></svg>
   </button>
-  <button class="tb" id="btnSample" data-tip="方言采样 · 录你家的说法" aria-label="打开方言采样台">
+  <button class="tb" id="btnSample" data-tip="录一条你家的说法" aria-label="打开采录">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" stroke-linejoin="round"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke-linecap="round"/></svg>
   </button>
 </div>
@@ -92,7 +92,7 @@
 <!-- ================= 模态 ================= -->
 <div class="modal" id="modal"><div class="modal-card" id="modalCard"></div></div>
 <div class="toast" id="toast"></div>
-<div class="hint" id="hint">拖拽旋转 · 滚轮缩放 · 点击区县进入</div>
+<div class="hint" id="hint">拖拽旋转 · 滚轮缩放 · 点区县看方言点 · 右下角录音</div>
 
 <!-- ================= 方言小游戏 stage ================= -->
 <div class="stage" id="stage"></div>

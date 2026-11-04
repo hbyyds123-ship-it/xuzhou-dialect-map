@@ -57,7 +57,7 @@
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
   const P = window.PROMPTS || [];
 
-  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《乡音册》词表' };
+  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《乡音册》词表', free: '自定 · 你自己想录的' };
   /** 填补策略三分类：借音 / 意译 / 旧词延伸（导出后要能按这三类统计） */
   const STRATEGY = ['借音', '意译', '旧词延伸', '其他'];
   /** 判定人：策略归类必须标明是谁判的，记录者自评不当证据 */
@@ -806,6 +806,30 @@ function encodeWavBase64(samples, sr) {
 
     $('#recBtn').addEventListener('click', toggleRec);
     $('#skipBtn').addEventListener('click', () => { S.idx = (S.idx + 1) % P.length; drawPrompt(); });
+
+    /* 录一个自己的词：题库之外的自由录入。
+       题目只活在本次会话（不写回 prompts.js），但录音与其他题完全一样地存、一样地导出。 */
+    $('#freeBtn').addEventListener('click', () => {
+      const row = $('#freeRow');
+      row.hidden = !row.hidden;
+      if (!row.hidden) $('#freeText').focus();
+    });
+    $('#freeCancel').addEventListener('click', () => { $('#freeRow').hidden = true; $('#freeText').value = ''; });
+    $('#freeOk').addEventListener('click', () => {
+      const t = ($('#freeText').value || '').trim();
+      if (!t) { banner('先写下要录的词或句子。'); return; }
+      const dup = P.findIndex((p) => p.text === t);
+      if (dup >= 0) { S.idx = dup; drawPrompt(); banner('题库里已经有「' + t + '」，直接录它。'); }
+      else {
+        P.push({ id: 'free-' + Date.now(), bucket: 'free', text: t, hint: '你自己加的题。录音、声调分析、导出与其它题完全一样。' });
+        S.idx = P.length - 1;
+        drawPrompt();
+        banner('已加一道自定题：' + t);
+      }
+      $('#freeRow').hidden = true;
+      $('#freeText').value = '';
+    });
+    $('#freeText').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#freeOk').click(); });
     $('#saveBtn').addEventListener('click', save);
     $('#redoBtn').addEventListener('click', () => { S.pending = null; drawPrompt(); });
     $('#playBtn').addEventListener('click', () => {
@@ -873,15 +897,27 @@ function encodeWavBase64(samples, sr) {
 
     /* 分类进度：题目分 5 类，数字全部从 PROMPTS 现算，改题不用改这里 */
     (function byClass() {
-      const groups = [['new', '新词'], ['old', '老词'], ['home', '家词'], ['sent', '句子'], ['atlas', '词表']];
+      const NAMES = { new: '新词', old: '老词', home: '家词', sent: '句子', atlas: '词表' };
+      const bucketOf = (p) => (p && NAMES[p.bucket] ? p.bucket : 'free');
       const tot = {}, don = {};
-      P.forEach((p) => { const b = p.bucket || 'other'; tot[b] = (tot[b] || 0) + 1; });
-      P.forEach((p) => { if (doneIds.has(p.id)) { const b = p.bucket || 'other'; don[b] = (don[b] || 0) + 1; } });
+      P.forEach((p) => { const b = bucketOf(p); tot[b] = (tot[b] || 0) + 1; });
+      const seen = new Set();
+      S.clips.forEach((c) => {
+        if (seen.has(c.promptId)) return;
+        seen.add(c.promptId);
+        const p = P.find((x) => x.id === c.promptId);
+        const b = bucketOf(p);
+        don[b] = (don[b] || 0) + 1;
+      });
+      const groups = Object.keys(NAMES).concat(['free']);
       const box = document.getElementById('byClass');
       if (box) {
-        box.innerHTML = groups.map(([k, name]) =>
-          '<div class="bc-row"><span>' + name + '</span><i></i><b>' + (don[k] || 0) + ' / ' + (tot[k] || 0) + '</b></div>'
-        ).join('');
+        const label = { new: '新词', old: '老词', home: '家词', sent: '句子', atlas: '词表', free: '自定' };
+        box.innerHTML = groups
+          .filter((k) => tot[k] || don[k])
+          .map((k) =>
+            '<div class="bc-row"><span>' + label[k] + '</span><i></i><b>' + (don[k] || 0) + ' / ' + (tot[k] || 0) + '</b></div>'
+          ).join('');
       }
       const ft = document.getElementById('ftDone');
       if (ft) ft.textContent = String(doneIds.size);

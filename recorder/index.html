@@ -220,6 +220,13 @@
   .sheet-foot { margin-top: 26px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 10.5px; letter-spacing: .08em; color: var(--ink-2); font-family: ui-monospace, Consolas, monospace; }
   .sheet-foot b { font-weight: 400; color: var(--ink); }
   #exportJson { letter-spacing: 0; }
+
+  /* 自定题：题库之外，用户自己想录的词 */
+  .freerow { display: flex; gap: 10px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  .freerow[hidden] { display: none; }
+  .freerow input { flex: 1; min-width: 240px; padding: 8px 2px; font: inherit; font-size: 14px; background: transparent; color: var(--ink); border: 1px solid var(--rule); border-bottom: 1px solid var(--ruleS); }
+  .freerow input:focus { border-bottom-color: var(--zhu); outline: none; }
+  .tag.free { color: var(--ink-2); }
 </style>
 </head>
 <body>
@@ -246,6 +253,12 @@
           <button id="recBtn" class="primary"><span class="dot"></span><span id="recLabel">按下开始录音</span></button>
           <span id="recTimer">0.0s</span>
           <button id="skipBtn" class="ghost">跳过</button>
+          <button id="freeBtn" class="ghost">＋ 录一个自己的词</button>
+        </div>
+        <div class="freerow" id="freeRow" hidden>
+          <input id="freeText" placeholder="想录的词或一句话（题库里没有的，写在这）" maxlength="40">
+          <button id="freeOk" class="primary">就用这个</button>
+          <button id="freeCancel" class="ghost">取消</button>
         </div>
 
         <div id="resultRow" style="display:none">

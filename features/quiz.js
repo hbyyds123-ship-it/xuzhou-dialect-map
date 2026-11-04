@@ -35,8 +35,24 @@
      模块缺席（单独拷走 features/ 或脚本没加载）时行为与改动前完全一致。 */
   function speakWord(item, rate) {
     var S = window.XZ && window.XZ.sample && window.XZ.sample.speakOrSynth;
-    if (S && item) S(item, audio, rate);
-    else if (item) audio.speak(item.w, rate);
+    if (S && item) return S(item, audio, rate);
+    if (item) audio.speak(item.w, rate);
+    return Promise.resolve('synth');
+  }
+
+  /* 「听发音」必须说清是谁的嘴：你家的录音，还是普通话合成。
+     学方言最忌讳的就是把合成音当范本——那等于在学普通话。
+     没有真人录音时，就把这句写在按钮旁边，而不是只弹一次 toast。 */
+  function markSource(src) {
+    var el = root.querySelector('[data-src]');
+    if (!el) return;
+    if (src === 'real') {
+      el.textContent = '你家的录音';
+      el.className = 'q-src real';
+    } else {
+      el.textContent = '普通话合成 · 不是徐州话';
+      el.className = 'q-src synth';
+    }
   }
 
   function esc(s) {
@@ -137,6 +153,7 @@
       '<button class="q-play" data-play>' +
       '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>' +
       '<span>听发音</span></button>' +
+      '<span class="q-src" data-src></span>' +
       '<div class="q-ask">这句徐州话的意思是？</div>' +
       '</div>' +
 
@@ -147,7 +164,7 @@
 
     q.locked = false;
     bind();
-    setTimeout(function () { if (q && !q.locked) speakWord(item, 0.72); }, 260);
+    setTimeout(function () { if (q && !q.locked) speakWord(item, 0.72).then(markSource); }, 260);
   }
 
   function S0() { return window.XZ.store.get(); }
@@ -158,7 +175,7 @@
 
     var play = root.querySelector('[data-play]');
     if (play) play.addEventListener('click', function () {
-      speakWord(q.qs[q.i].item, 0.7);
+      speakWord(q.qs[q.i].item, 0.7).then(markSource);
       play.classList.add('on');
       setTimeout(function () { play.classList.remove('on'); }, 900);
     });

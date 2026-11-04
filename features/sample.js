@@ -24,7 +24,6 @@
   var idx = null;
   var dbp = null, dbFailed = false;
   var urls = {};
-  var synthWarned = false;
   var toastTimer = 0;
 
   function served() {
@@ -150,16 +149,13 @@
    */
   function speakOrSynth(word, audio, rate) {
     var id = word && (word.atlasId || word.id);
-    if (!id) { if (audio) audio.speak(word && word.w, rate); return; }
-    play(id).then(function (ok) {
-      if (ok) return;
+    if (!id) { if (audio) audio.speak(word && word.w, rate); return Promise.resolve('synth'); }
+    return play(id).then(function (ok) {
+      if (ok) return 'real';
       if (audio) audio.speak(word.w, rate);
-      if (!synthWarned) {
-        synthWarned = true;
-        toast(served()
-          ? '这个词还没有你家的录音 —— 现在播的是普通话合成音，不是徐州话。去「方言采样」录一条就会改播录音。'
-          : '现在播的是普通话合成音，不是徐州话。要播真人录音，需用 node serve.cjs 后打开 http://127.0.0.1:8000/');
-      }
+      // 不再弹 toast：调用方（测验）已经把「普通话合成 · 不是徐州话」常驻写在播放键旁边，
+      // 再弹一次只会挡住题目内容，而且每次进关都弹。
+      return 'synth';
     });
   }
 

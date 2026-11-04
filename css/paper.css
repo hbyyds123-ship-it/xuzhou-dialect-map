@@ -462,3 +462,19 @@ body::after {
 .modal-card { max-height: 84vh; overflow: auto; }
 .bk { min-height: 92px; padding: 12px 10px; }
 .bk-w { font-size: 20px; }
+
+/* 「听发音」的来源标注：真人录音=朱，合成音=墨灰并写明"不是徐州话" */
+.q-src { font-size: 11px; margin-left: 10px; letter-spacing: .04em; color: var(--ink-2); }
+.q-src.real { color: var(--zhu); }
+.q-src.synth { color: var(--ink-2); }
+
+/* 吐司：纸本皮肤下原来会溢出一行被裁掉，这里允许换行并压在最上层 */
+.toast {
+  max-width: min(90vw, 560px) !important;
+  white-space: normal !important;
+  text-align: center;
+  line-height: 1.7 !important;
+  padding: 10px 16px !important;
+  border-radius: 0 !important;
+  z-index: 90 !important;
+}

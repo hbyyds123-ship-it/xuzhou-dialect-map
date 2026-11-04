@@ -14,9 +14,12 @@
 - **方言挑战**：词条测验模块，答对累计「方言值」与等级
 - **拉呱场景**：3 段对话树（早点摊儿 / 街上问路 / 姥姥家吃饭），跟着话头接下去会解锁专属词条
 - **方言图鉴**：已解锁词条一览（54 条全部可达）
+- **方言采样台**（`recorder/`）：给词表与自家的说法录音，声调当场算成曲线与读数，存档是一个能脱离本程序打开的单文件 HTML。装上后「听发音」优先播**你家的真人录音**，没有录音时才回落合成音并明说那是普通话合成
 - **探索进度**：底部队县导航 + 侧栏探索进度条
 
 ## 快速开始
+
+### 模式一 · 学习（双击即可）
 
 ```bash
 # 直接打开，无需任何依赖
@@ -25,31 +28,64 @@ start index.html       # Windows
 xdg-open index.html    # Linux
 ```
 
-也可以用任意静态服务器：
+地图、搜索、方言挑战、拉呱场景、图鉴全部照常工作。**这个模式不能录音。**
+
+### 模式二 · 学习 + 采样（要录你家的声音，就用这个）
 
 ```bash
-python -m http.server 8000
-# 浏览器访问 http://localhost:8000
+node serve.cjs          # 或 node serve.cjs 8080，零依赖
 ```
+
+| 入口 | 地址 |
+|---|---|
+| 学习（地图 / 挑战 / 图鉴） | http://127.0.0.1:8000/ |
+| 采样（方言采样台） | http://127.0.0.1:8000/recorder/ |
+
+工具条上新增的麦克风按钮 `#btnSample` 就是采样台入口；它的数据流见下一节。
+
+> 为什么录音必须走 `127.0.0.1`：浏览器**不会在 `file://` 来源授予麦克风权限**。
+> 注意机制不是「`file://` 不安全上下文」——Chrome 里 `file://` 的 `isSecureContext` 实测为 `true`；
+> 真正的原因是来源权限策略。所以自检判据看的是协议 + 主机，而不是 `isSecureContext`（这条是实测纠正的）。
+
+## 两个模块之间的数据流
+
+```
+data/atlas.js  ──(ATLAS.words 54 条，唯一真源)──▶  recorder/prompts-atlas.js 派生成词表题（带 atlasId）
+        ▲                                                        │
+        │                                            录一条 → 存 IndexedDB xz-dialect-rec
+        │                                                        │
+   quiz.js「听发音」◀── features/sample.js ◀── localStorage 索引 xzdt.sample.v1
+```
+
+- **词表 → 题库**：改 `atlas.js` 加一个词，采样台自动多一道题，两边不会漂移（实测合并后题库 42 → 93 题，其中 3 条与原有题目词形相同，改为把 `atlasId` 挂回原条目而不重复出题）。
+- **题库 → 地图**：录音索引（不是音频）写进同源 localStorage；地图按 `atlasId` 找到 `clipId`，从 IndexedDB 取出 blob 播放。
+- **「听发音」是一条优先链**：有你的真人录音 → 播录音并标注「真人录音 · 你家的说法」；没有 → 回落原来的普通话合成音，并明说**「这是普通话合成音，不是徐州话」**。合成音冒充方言是这个项目原来的天花板，现在它只在没有录音时出现，且不再冒充。
+
+**隐私边界**：录音与标注全部留在本机浏览器里（IndexedDB + localStorage），本仓库**不含任何真人音频**，也没有任何上传路径。真人声音只随你自己导出的那个单文件 HTML 走，别把它放进公共仓库。
 
 ## 目录结构
 
 ```
 .
 ├── index.html              # 页面骨架
+├── serve.cjs               # 本地静态服务器（采样模式需要；地图与 recorder 同源）
 ├── css/
 │   └── style.css           # 主样式
 ├── features/
 │   ├── quiz.js / quiz.css   # 方言挑战（测验）模块
-│   └── scene.js / scene.css # 拉呱场景（对话树运行时）
+│   ├── scene.js / scene.css # 拉呱场景（对话树运行时）
+│   └── sample.js           # 采样台入口 + 真人发音优先链（读索引与 IndexedDB）
 ├── core/
 │   ├── router.js           # 路由
 │   └── store.js            # 状态管理与进度持久化
 ├── data/
-│   ├── atlas.js            # 方言词条与方言点数据
+│   ├── atlas.js            # 方言词条与方言点数据（也是采样题库的真源）
 │   └── geo.xuzhou.js       # 徐州地理边界数据
 ├── js/
 │   └── app.js              # 应用主逻辑
+├── recorder/               # 方言采样台（出题 → 录音 → 声调读数 → 标注 → 自包含存档）
+│   ├── index.html / app.js / prompts.js / prompts-atlas.js
+│   └── tools/              # selftest / e2e-check / anchor-check / extract / cross-check
 ├── tools/
 │   └── audit-reachability.cjs  # 静态守卫：有没有词条拿不到、场景有没有入口
 ├── assets/thumbs/          # 各区县缩略图（SVG）
@@ -68,6 +104,22 @@ node tools/audit-reachability.cjs   # 退出码 0 = 54 条词条全部有已实�
 
 它盯三件事：词条是否至少有一条**已实现**的通路（关卡 / 场景 / 到访）、场景 `unlock`
 是否指向存在的词条、场景归属的区县是否存在（区县不存在则入口渲染不出来）。
+
+改采样台（`recorder/`）之后跑这几套：
+
+```bash
+cd recorder
+node tools/selftest.cjs           # 声学判据：参考信号的 F0 偏差、平调判"平"、静音报红…
+node tools/anchor-check.cjs       # 三段可独立求值的代码能否按标记稳定提取（不再依赖行号）
+node tools/e2e-check.cjs 8143     # 端到端：起浏览器 + 假麦克风，真保存 / 真刷新 / 真删除 / 真导出
+node tools/cross-browser.cjs      # 跨浏览器：本机每个可自动化的浏览器各跑一遍，出矩阵
+```
+
+> `e2e-check` 若在仓库根已起 `serve.cjs` 的端口上运行，会直接复用那个服务器并访问 `/recorder/`，
+> 这才是合并后的真实拓扑（地图与采样台同源，索引才读得到）。
+> 默认用 Chrome，`node tools/e2e-check.cjs 8143 edge` 可换浏览器；`node tools/browsers.cjs` 看本机装了哪些。
+> Firefox / Safari 本机无法自动化（前者 CDP 已移除、后者仅 macOS），README 的「浏览器支持」一节写清了
+> 代码为它们做了哪些降级，以及哪些只是"没跑过"——不拿 Chromium 的绿冒充全兼容。
 
 ## 相关仓库
 

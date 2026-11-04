@@ -18,3 +18,8 @@ npm-debug.log*
 # 构建产物
 dist/
 build/
+
+# 测试机产物：每次运行都重写，含本机浏览器版本与时间戳，不该进版本库
+recorder/tools/e2e-result.json
+recorder/tools/cross-browser-result.json
+recorder/tools/cross-browser-*.log

@@ -55,7 +55,7 @@ function run(cmd, args, opts) {
   return (r.stdout || '').trim();
 }
 
-function main() {
+async function main() {
   const files = ASSETS.concat(walk('assets/thumbs', []));
   const missing = files.filter((f) => !fs.existsSync(path.join(ROOT, f)));
   if (missing.length) throw new Error('缺文件：' + missing.join(', '));
@@ -83,14 +83,42 @@ function main() {
   console.log(`· blob ${(blobSize / 1024).toFixed(0)} KB`);
 
   // 3) 复制 node 本体，再注入 blob
-  const exe = path.join(DIST, EXE_NAME);
+  const IS_MAC = process.platform === 'darwin';
+  const exe = path.join(DIST, IS_MAC ? '徐州方言地图' : EXE_NAME);
   fs.copyFileSync(process.execPath, exe);
+  // macOS：node 本体带签名，注入前必须先去掉，装完再 ad-hoc 签名
+  if (IS_MAC) {
+    try { run('codesign', ['--remove-signature', exe]); } catch (e) { console.warn('! 去签名失败：' + e.message); }
+  }
   console.log(`· 复制运行时 ${(fs.statSync(exe).size / 1048576).toFixed(1)} MB`);
 
-  run('npx', ['--yes', 'postject@1.0.0-alpha.6', exe, 'NODE_SEA_BLOB', blob,
-    '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'],
-    { cwd: DIST, shell: process.platform === 'win32' });
+  const inject = ['--yes', 'postject@1.0.0-alpha.6', exe, 'NODE_SEA_BLOB', blob,
+    '--sentinel-fuse', 'NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2'];
+  if (IS_MAC) inject.push('--macho-segment-name', 'NODE_SEA_BLOB');
+  run('npx', inject, { cwd: DIST, shell: process.platform === 'win32' });
+  if (IS_MAC) {
+    try { run('codesign', ['--sign', '-', exe]); console.log('· 已做 ad-hoc 签名'); } catch (e) { console.warn('! 签名失败：' + e.message); }
+  }
   console.log(`· 注入完成 → ${path.relative(ROOT, exe)}（${(fs.statSync(exe).size / 1048576).toFixed(1)} MB）`);
+
+  // 3.5) 换图标：默认是 node 的图标，任务栏上认不出是什么
+  const ico = path.join(TMP, 'icon.ico');
+  if (!IS_MAC && fs.existsSync(ico)) {
+    try {
+      const { NtExecutable, NtExecutableResource, Resource, Data } = await import('resedit');
+      const pe = NtExecutable.from(fs.readFileSync(exe), { ignoreCert: true });
+      const res = NtExecutableResource.from(pe);
+      const icoFile = Data.IconFile.from(fs.readFileSync(ico));
+      Resource.IconGroupEntry.replaceIconsForResource(res.entries, 1, 1033, icoFile.icons.map((i) => i.data));
+      res.outputResource(pe);
+      fs.writeFileSync(exe, Buffer.from(pe.generate()));
+      console.log('· 图标已写入（朱色方章「徐」）');
+    } catch (e) {
+      console.warn('! 图标写入失败（不影响使用）：' + e.message);
+    }
+  } else if (!IS_MAC) {
+    console.warn('! 没有 portable/icon.ico，保留默认图标（可先跑 node portable/make-icon.cjs）');
+  }
 
   // 4) 自检：跑 exe 自己的 --self-test
   const probe = spawnSync(exe, ['--self-test'], { encoding: 'utf8', cwd: DIST, timeout: 120000 });
@@ -130,4 +158,4 @@ function main() {
   console.log('  ' + path.relative(ROOT, path.join(DIST, '使用说明.txt')));
 }
 
-try { main(); } catch (e) { console.error('\n打包失败：' + e.message); process.exit(1); }
+main().catch((e) => { console.error('\n打包失败：' + e.message); process.exit(1); });

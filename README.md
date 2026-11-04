@@ -142,6 +142,20 @@ exe 启动时在本机起服务、再用默认浏览器打开 `http://127.0.0.1:
 `node tools/build-portable.cjs` 会在打包后自动跑一次 `--self-test`（起服务、取首页/采样台/脚本/three.js，
 全部 200 且内容命中才算过），避免发出一个打不开的 exe。
 
+**图标**：`node portable/make-icon.cjs`（或 `npm run icon`）会用本机 Chromium 按 16/24/32/48/64/128/256
+七个尺寸各渲染一次「朱色方章 + 徐」，拼成 `portable/icon.ico`；打包时自动写进 exe。
+不用 Pillow、不用 ImageMagick——本机已有的浏览器就够了。
+
+**其他平台**：
+
+| 平台 | 怎么做 | 状态 |
+|---|---|---|
+| Windows x64 | `node tools/build-portable.cjs` | 已验证（自检 + 端到端录音） |
+| macOS（Intel / Apple Silicon） | 在**目标机器**上跑同一条命令；脚本会自动 `codesign --remove-signature`、注入时加 `--macho-segment-name`、装完再做 ad-hoc 签名 | 代码里有分支，**未在真机验证** |
+| Linux x64 | 同上（无需签名步骤） | 代码里有分支，**未在真机验证** |
+
+跨架构不行：打进去的是**本机**的 Node 运行时，arm64 的包只能在 arm64 上跑。
+
 ## 相关仓库
 
 - [xz-dialect-geo-data](https://github.com/22258-cmd/xz-dialect-geo-data) — 地理边界数据（权威版与降采样版）

@@ -27,3 +27,6 @@ recorder/tools/cross-browser-*.log
 # 打包中间产物（由 tools/build-portable.cjs 生成）
 portable/sea-config.json
 portable/sea-prep.blob
+
+# 依赖（图标注入用的 resedit、CI 的 playwright）
+node_modules/

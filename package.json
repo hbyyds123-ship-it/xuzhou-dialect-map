@@ -6,9 +6,11 @@
   "scripts": {
     "audit": "node tools/audit-reachability.cjs",
     "smoke": "node tools/smoke.cjs",
-    "build:portable": "node tools/build-portable.cjs"
+    "build:portable": "node tools/build-portable.cjs",
+    "icon": "node portable/make-icon.cjs"
   },
   "devDependencies": {
-    "playwright": "^1.48.0"
+    "playwright": "^1.48.0",
+    "resedit": "^3.1.0"
   }
 }

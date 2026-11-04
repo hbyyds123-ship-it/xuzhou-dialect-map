@@ -51,9 +51,8 @@ async function main() {
   const userDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cdp-'));
   const port = 9333;
   const proc = spawn(CHROME, [
-    '--headless=new', `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`,
-    '--no-first-run', '--no-default-browser-check', '--disable-gpu',
-    '--autoplay-policy=no-user-gesture-required', 'about:blank'
+    ...browsers.commonFlags(), `--remote-debugging-port=${port}`, `--user-data-dir=${userDir}`,
+    '--no-default-browser-check', '--autoplay-policy=no-user-gesture-required', 'about:blank'
   ], { stdio: 'ignore' });
 
   // 等 CDP 就绪

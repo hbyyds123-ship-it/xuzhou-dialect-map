@@ -12,18 +12,49 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       # 数据里存在、代码里没实现的解锁通路，这一步会直接红
       - run: node tools/audit-reachability.cjs
 
-  browser:
-    name: 浏览器冒烟（Playwright）
+  map-browser:
+    name: 地图冒烟（Playwright）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - run: npm install --no-audit --no-fund   # 版本以 package.json 为准，别在这里另钉一个
       - run: npx playwright install --with-deps chromium
       - run: node tools/smoke.cjs
+
+  recorder:
+    name: 采样台（无依赖 · 本机 Chrome · 真录音真导出）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'          # e2e 用内置 WebSocket（Node >= 22），不装任何 npm 包
+
+      # 静态/数值部分：声学判据 + 三段代码能否按标记稳定提取
+      - run: node tools/selftest.cjs
+        working-directory: recorder
+      - run: node tools/anchor-check.cjs
+        working-directory: recorder
+
+      # 端到端 + 浏览器端：自己起 serve.cjs，用 runner 预装的 google-chrome 与假麦克风
+      # CI 环境下 browsers.cjs 会自动补 --no-sandbox / --disable-dev-shm-usage
+      - run: node tools/cross-browser.cjs
+        working-directory: recorder
+
+      - name: 留一份运行日志与结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recorder-results
+          path: |
+            recorder/tools/e2e-result.json
+            recorder/tools/cross-browser-result.json
+            recorder/tools/cross-browser-*.log
+          if-no-files-found: ignore

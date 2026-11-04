@@ -22,49 +22,94 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
+/* 路径按平台分组：Windows 是这台开发机，Linux/macOS 是给 CI 与别人的机器用的。
+   环境变量优先（BROWSER_CHROME / BROWSER_EDGE …），方便 CI 里指到非标准安装位置。 */
+const WIN = process.platform === 'win32';
+const MAC = process.platform === 'darwin';
+
+const ENV_OVERRIDE = {
+  chrome: process.env.BROWSER_CHROME || '',
+  edge: process.env.BROWSER_EDGE || '',
+  brave: process.env.BROWSER_BRAVE || '',
+  firefox: process.env.BROWSER_FIREFOX || ''
+};
+
 const CANDIDATES = [
   {
     name: 'chrome', label: 'Chrome', kind: 'chromium',
     paths: [
+      ENV_OVERRIDE.chrome,
       'C:/Program Files/Google/Chrome/Application/chrome.exe',
       'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'Google/Chrome/Application/chrome.exe')
+      path.join(process.env.LOCALAPPDATA || '', 'Google/Chrome/Application/chrome.exe'),
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/opt/google/chrome/chrome'
+    ]
+  },
+  {
+    name: 'chromium', label: 'Chromium', kind: 'chromium',
+    paths: [
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/snap/bin/chromium',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium'
     ]
   },
   {
     name: 'edge', label: 'Edge', kind: 'chromium',
     paths: [
+      ENV_OVERRIDE.edge,
       'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
-      'C:/Program Files/Microsoft/Edge/Application/msedge.exe'
+      'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/usr/bin/microsoft-edge',
+      '/usr/bin/microsoft-edge-stable'
     ]
   },
   {
     name: 'brave', label: 'Brave', kind: 'chromium',
-    paths: ['C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe']
+    paths: [
+      ENV_OVERRIDE.brave,
+      'C:/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe',
+      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+      '/usr/bin/brave-browser'
+    ]
   },
   {
     name: 'firefox', label: 'Firefox', kind: 'gecko',
     note: 'CDP 已移除，需要 geckodriver + WebDriver；本仓库的自动化暂不支持，仅做人工验证',
     paths: [
+      ENV_OVERRIDE.firefox,
       'C:/Program Files/Mozilla Firefox/firefox.exe',
-      'C:/Program Files (x86)/Mozilla Firefox/firefox.exe'
+      'C:/Program Files (x86)/Mozilla Firefox/firefox.exe',
+      '/Applications/Firefox.app/Contents/MacOS/firefox',
+      '/usr/bin/firefox'
     ]
   },
   {
     name: 'safari', label: 'Safari', kind: 'webkit',
     note: '仅 macOS；本仓库的自动化不支持，靠功能探测 + 降级路径覆盖',
-    paths: []
+    paths: MAC ? ['/Applications/Safari.app/Contents/MacOS/Safari'] : []
   }
 ];
 
-/** 读 Windows 可执行文件版本号；读不到就返回 ''（不阻断探测） */
+/** 读浏览器版本号；Windows 走 PowerShell 的 VersionInfo，其余平台跑 --version。
+    读不到就返回 ''，不阻断探测。 */
 function versionOf(exe) {
   try {
-    const out = execFileSync('powershell', [
-      '-NoProfile', '-NonInteractive', '-Command',
-      `(Get-Item '${exe.replace(/'/g, "''")}').VersionInfo.ProductVersion`
-    ], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] });
-    return String(out).trim();
+    if (WIN) {
+      const out = execFileSync('powershell', [
+        '-NoProfile', '-NonInteractive', '-Command',
+        `(Get-Item '${exe.replace(/'/g, "''")}').VersionInfo.ProductVersion`
+      ], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] });
+      return String(out).trim();
+    }
+    const out = execFileSync(exe, ['--version'], {
+      encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore']
+    });
+    return String(out).trim().replace(/^[^0-9]*/, '');
   } catch (e) { return ''; }
 }
 
@@ -104,7 +149,18 @@ function describe(b) {
   return `${b.label}${b.version ? ' ' + b.version : ''}${b.path ? ' · ' + b.path : ''}`;
 }
 
-module.exports = { list, pick, primary, describe, versionOf };
+/** 无头启动的公共参数。CI 容器里 Chrome 常因没有 user namespace 而起不来，
+    只有在那时加 --no-sandbox；本地不加，别把沙箱关成默认行为。
+    /dev/shm 在容器里往往只有 64MB，Linux 下一并加 --disable-dev-shm-usage。 */
+function commonFlags() {
+  const flags = ['--headless=new', '--no-first-run', '--disable-gpu'];
+  const needNoSandbox = process.env.CI || process.env.BROWSER_NO_SANDBOX === '1';
+  if (needNoSandbox) flags.push('--no-sandbox', '--disable-setuid-sandbox');
+  if (process.platform === 'linux') flags.push('--disable-dev-shm-usage');
+  return flags;
+}
+
+module.exports = { list, pick, primary, describe, versionOf, commonFlags };
 
 if (require.main === module) {
   const rows = list();

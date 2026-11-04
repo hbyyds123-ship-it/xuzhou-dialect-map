@@ -45,6 +45,7 @@ node serve.cjs           # 或 node serve.cjs 8080
 | 浏览器 | 状态 | 凭什么这么说 |
 |---|---|---|
 | Chrome / Edge（Chromium 156 实测） | **已自动化验证** | `node tools/cross-browser.cjs`：e2e 22 项 + 浏览器检查 6 项，两个内核各跑一遍全绿 |
+| Linux CI 上的 google-chrome | **已接入 CI** | `.github/workflows/smoke.yml` 的 `recorder` job 跑 `selftest + anchor-check + cross-browser`，**零 npm 依赖**（不用 Playwright，直接 CDP）；`browsers.cjs` 在 CI 下自动补 `--no-sandbox / --disable-dev-shm-usage` |
 | Firefox | 未自动化（本机未安装） | 代码按能力探测降级，没跑过就不敢说支持：Firefox 的 CDP 在 129 之后被移除，要另接 geckodriver |
 | Safari | 未自动化（仅 macOS） | 已按它的两个老坑做降级：`webkitAudioContext` / `webkitOfflineAudioContext` 前缀、`MediaRecorder` 拒绝未知选项时逐级回退、`decodeAudioData` 回调式 |
 | 任何没有 `OfflineAudioContext` 的内核 | 降级可用 | 导出会把这格标成「音频转换失败，请用 JSON 备份」，表格与「说法」仍在（A21d 用运行时复现过） |

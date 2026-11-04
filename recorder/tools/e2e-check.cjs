@@ -130,10 +130,9 @@ async function main() {
   makeWav(wav, 180, 4, 48000);
   const ud = fs.mkdtempSync(path.join(os.tmpdir(), 'e2e-cdp-'));
   const chrome = spawn(BROWSER.path, [
-    '--headless=new',
+    ...browsers.commonFlags(),
     `--remote-debugging-port=${PORT + 10}`,
     `--user-data-dir=${ud}`,
-    '--no-first-run', '--disable-gpu',
     '--use-fake-ui-for-media-stream',
     '--use-fake-device-for-media-stream',
     `--use-file-for-fake-audio-capture=${wav}`

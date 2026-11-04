@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>乡音册 · 丛刊结构</title>
+<style>
+  /* 这张图的唯一用途：让人在 10 秒内看懂"引擎 / 卷"是两层。
+     和产品同一套纸本语言（纸 #F3EDE1、墨 #1B1A17、朱 #A63B2A、靛 #2C4650），
+     零圆角、零渐变、零阴影 —— 不然就又是"AI 味"的示意图。 */
+  :root{
+    --paper:#F3EDE1; --paper2:#E7DFCE; --paper3:#FBF7EE;
+    --ink:#1B1A17; --ink2:#6B655B; --zhu:#A63B2A; --dian:#2C4650;
+    --rule:rgba(27,26,23,.18); --ruleS:rgba(27,26,23,.45);
+    --serif:"Songti SC","SimSun","STSong","Noto Serif SC",serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box; border-radius:0;}
+  html,body{margin:0;padding:0;background:var(--paper);}
+  body{
+    width:1600px; height:880px; padding:46px 64px 34px;
+    font-family:var(--serif); color:var(--ink);
+    display:flex; flex-direction:column;
+  }
+
+  header{display:flex; align-items:flex-end; justify-content:space-between; border-bottom:2px solid var(--ink); padding-bottom:14px;}
+  .eyebrow{font-family:var(--mono); font-size:12px; letter-spacing:.28em; color:var(--ink2);}
+  h1{margin:6px 0 0; font-size:38px; letter-spacing:.1em; font-weight:700;}
+  .lede{margin:6px 0 0; font-size:16px; color:var(--ink2); letter-spacing:.06em;}
+  .stamp{
+    width:84px;height:84px; border:3px solid var(--zhu); color:var(--zhu);
+    display:grid; place-items:center; font-size:34px; letter-spacing:.04em;
+    transform:rotate(-3deg); font-weight:700;
+  }
+
+  .main{flex:1; display:grid; grid-template-columns:1fr 132px 1fr; gap:0; padding:26px 0 0; align-items:start;}
+
+  .col{display:flex; flex-direction:column;}
+  .col-head{display:flex; align-items:baseline; gap:12px; border-bottom:1px solid var(--ink); padding-bottom:8px; margin-bottom:14px;}
+  .col-head b{font-size:20px; letter-spacing:.14em; font-weight:700;}
+  .col-head span{font-size:12px; color:var(--ink2); letter-spacing:.08em;}
+  .tag{font-family:var(--mono); font-size:11px; letter-spacing:.12em; border:1px solid var(--ruleS); padding:2px 7px; color:var(--ink2);}
+  .tag.zhu{color:var(--zhu); border-color:var(--zhu);}
+  .tag.dian{color:var(--dian); border-color:var(--dian);}
+
+  ul{list-style:none; margin:0; padding:0;}
+  li{display:flex; align-items:baseline; gap:10px; padding:11px 0; border-bottom:1px solid var(--rule); font-size:15px;}
+  li i{font-family:var(--mono); font-style:normal; font-size:11px; color:var(--ink2); min-width:22px;}
+  li b{font-weight:400; letter-spacing:.03em;}
+  li small{margin-left:auto; font-size:11.5px; color:var(--ink2); font-family:var(--mono);}
+  li.hi b{color:var(--zhu);}
+
+  .note{margin:20px 0 0; font-size:12.5px; line-height:1.95; color:var(--ink2); padding-top:14px; border-top:1px solid var(--rule);}
+
+  .mid{display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:10px; padding-top:6px;}
+  .arrow{position:relative; width:1px; height:56px; background:var(--ink);}
+  .arrow::before, .arrow::after{content:""; position:absolute; left:-4px; border-left:4px solid transparent; border-right:4px solid transparent;}
+  .arrow::before{top:0; border-bottom:7px solid var(--ink);}
+  .arrow::after{bottom:0; border-top:7px solid var(--ink);}
+  .iface{
+    writing-mode:vertical-rl; letter-spacing:.22em; font-family:var(--mono); font-size:12px;
+    border:1px solid var(--dian); color:var(--dian); padding:12px 8px; background:var(--paper3);
+  }
+  .iface-cap{font-size:11px; color:var(--ink2); letter-spacing:.1em; text-align:center; line-height:1.7;}
+
+  .vols{border-top:2px solid var(--ink); padding-top:14px;}
+  .vols-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px;}
+  .vols-head b{font-size:15px; letter-spacing:.16em;}
+  .vols-head span{font-size:12px; color:var(--ink2);}
+  .vol-row{display:flex; align-items:stretch; gap:0;}
+  .vol{
+    flex:1; border:1px solid var(--ruleS); border-right:none; padding:13px 15px; min-height:96px;
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .vol:last-child{border-right:1px solid var(--ruleS);}
+  .vol .no{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--ink2);}
+  .vol .nm{font-size:19px; letter-spacing:.06em;}
+  .vol .st{font-size:11.5px; color:var(--ink2);}
+  .vol.done{background:var(--paper3);}
+  .vol.done .nm{color:var(--zhu);}
+  .vol.done .st{color:var(--zhu);}
+  .vol.empty{background:transparent;}
+  .vol.empty .nm{color:var(--ink2);}
+  .vol.empty .st{color:var(--ruleS);}
+  .vol.more{flex:.5; align-items:center; justify-content:center;}
+  .vol.more .nm{color:var(--ink2); font-size:22px; letter-spacing:.3em;}
+
+  footer{display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--rule); padding-top:11px; margin-top:16px;}
+  footer .k{font-family:var(--mono); font-size:11.5px; color:var(--ink2); letter-spacing:.06em;}
+  footer .k b{color:var(--ink); font-weight:400;}
+  footer .say{font-size:13px; color:var(--ink2); letter-spacing:.08em;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">乡音册 · 丛刊结构 / ENGINE &amp; VOLUMES</div>
+    <h1>一套引擎，多卷地方志</h1>
+    <p class="lede">徐州是第 1 卷，不是全部。换掉一卷数据，同一套代码就是另一座城。</p>
+  </div>
+  <div class="stamp">乡</div>
+</header>
+
+<div class="main">
+  <!-- 引擎 -->
+  <section class="col">
+    <div class="col-head"><b>引擎</b><span>所有卷共用 · 改一次，每卷受益</span><span class="tag">core / features / js / recorder</span></div>
+    <ul>
+      <li><i>01</i><b>录音</b><small>getUserMedia · MediaRecorder</small></li>
+      <li><i>02</i><b>声调分析</b><small>自相关 F0 · 五度制 · 调型</small></li>
+      <li><i>03</i><b>学习</b><small>听音选词 · 来源标注</small></li>
+      <li><i>04</i><b>传承</b><small>三代对照 · 单文件存档</small></li>
+      <li><i>05</i><b>分发</b><small>本机服务 · 免安装 exe</small></li>
+    </ul>
+    <p class="note">引擎里和地方有关的只有一个对象 <b style="font-weight:400;color:var(--dian)">window.VOLUME</b>：<br>
+      标题、印章字、卷号、方言名、索引条、导出抬头、exe 名字，全从它来。</p>
+  </section>
+
+  <!-- 接口 -->
+  <div class="mid">
+    <div class="arrow"></div>
+    <div class="iface">window.VOLUME</div>
+    <div class="iface-cap">唯一接口<br>换卷不用改引擎<br>两个方向都通</div>
+    <div class="arrow"></div>
+  </div>
+
+  <!-- 卷 -->
+  <section class="col">
+    <div class="col-head"><b>卷</b><span>一个地方一套 · 互不干扰</span><span class="tag zhu">data/</span></div>
+    <ul>
+      <li class="hi"><i>01</i><b>volume.js</b><small>卷名 · 卷号 · 方言名 · 印章字</small></li>
+      <li><i>02</i><b>atlas.js</b><small>词表 · 方言点 · 关卡</small></li>
+      <li><i>03</i><b>geo.*.js</b><small>边界（须有审图号）</small></li>
+      <li><i>04</i><b>ref-audio/</b><small>范本音 · 请发音人念的</small></li>
+      <li><i>05</i><b>prompts.js</b><small>采录题 · 长什么样</small></li>
+    </ul>
+    <p class="note">开一卷：<b style="font-family:var(--mono);font-weight:400">npm run new-volume -- &lt;id&gt; &lt;地名&gt;</b><br>
+      生成骨架与待办清单，<b style="font-weight:400">不编造任何词条</b>。谁的老家谁做。</p>
+  </section>
+</div>
+
+<!-- 卷目 -->
+<div class="vols">
+  <div class="vols-head">
+    <b>卷 目</b>
+    <span>谁的老家谁开 · 不需要联系作者</span>
+  </div>
+  <div class="vol-row">
+    <div class="vol done">
+      <div class="no">第 1 卷</div>
+      <div class="nm">徐州</div>
+      <div class="st">已成卷 · 10 区县 / 20 方言点 / 54 词条</div>
+    </div>
+    <div class="vol empty">
+      <div class="no">第 2 卷</div>
+      <div class="nm">——</div>
+      <div class="st">空位 · 等你开</div>
+    </div>
+    <div class="vol empty more">
+      <div class="nm">…</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="k">开卷四样：<b>词表 30–60</b> · <b>边界（审图号）</b> · <b>方言点 10–20</b> · <b>范本音 54</b></div>
+  <div class="say">价值不在覆盖多少地方，在每个地方都能自己做一卷。</div>
+</footer>
+
+</body>
+</html>

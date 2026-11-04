@@ -1215,11 +1215,20 @@
             (missing.indexOf('范本音发音人') >= 0 ? '这一卷还没有一条请人念过的录音，' : '') +
             '来源要能查，所以在拿到之前宁可空着。补法见 VOLUMES.md。</p>'
           : '') +
+        /* 卷目：让人一眼看到"这是丛书里的一册"，而不是一个孤零零的作品。
+           第 2 卷起是空位 —— 不编造，也不假装有人在做。 */
+        '<div class="about-vols">' +
+          '<div class="av-row done"><span class="av-no">第 ' + (V.no || 1) + ' 卷</span><b>' + esc(V.name || '') + '</b>' +
+            '<span class="av-st">已成卷</span></div>' +
+          '<div class="av-row"><span class="av-no">第 ' + ((V.no || 1) + 1) + ' 卷</span><b>——</b>' +
+            '<span class="av-st">空位 · 谁的老家谁开</span></div>' +
+          '<div class="av-row more"><span class="av-no">第 ' + ((V.no || 1) + 2) + ' 卷起</span>' +
+            '<b>…</b><span class="av-st">开卷不需要联系作者</span></div>' +
+        '</div>' +
         '<div class="about-note">' +
-          '<p>这不是一个「徐州 App」，是<strong>一卷可以复制的地方志</strong>。</p>' +
-          '<p>引擎与卷是分开的：<code>core/ features/ css/ js/ recorder/ tools/</code> 不动；' +
-          '换掉 <code>data/</code> 里的词表、边界、方言点、范本音，同一套代码就是另一座城。' +
-          '录音、学习、传承这三件事的逻辑，在每个方言区都成立。</p>' +
+          '<p>这不是一个「' + esc(V.name || '') + ' App」，是<strong>一卷可以复制的地方志</strong>。' +
+          '引擎不动，换掉 <code>data/</code> 那一套（词表、边界、方言点、范本音），' +
+          '同一套代码就是另一座城 —— 录音、学习、传承这三件事在每个方言区都成立。</p>' +
           '<p class="about-cmd"><code>npm run new-volume -- &lt;卷 id&gt; &lt;地名&gt;</code></p>' +
           '<p class="about-dim">现在这一卷的 ' + WORDS.length + ' 个词里，' +
             ((window.XZ.refs && window.XZ.refs.count()) ? '有 ' + window.XZ.refs.count() + ' 个请人念过' :

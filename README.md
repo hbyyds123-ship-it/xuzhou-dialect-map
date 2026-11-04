@@ -8,6 +8,8 @@
 换掉 `data/volume.js` 与 `data/` 下的词表、边界、方言点、范本音，同一套代码就是另一座城。
 开一卷：`npm run new-volume -- <卷 id> <地名>`。详见 **[VOLUMES.md](VOLUMES.md)**。
 
+![一套引擎，多卷地方志](docs/engine-and-volumes.png)
+
 **许可**：代码以 MIT 授权；词条、拼音、例句、关卡与对话文本、缩略图以 CC BY-SA 4.0 授权；`data/geo.xuzhou.js` 的边界数据**来源待考、不主张授权**。详见 `LICENSE` 与 `NOTICE.md`。
 
 ## 功能

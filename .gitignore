@@ -23,3 +23,7 @@ build/
 recorder/tools/e2e-result.json
 recorder/tools/cross-browser-result.json
 recorder/tools/cross-browser-*.log
+
+# 打包中间产物（由 tools/build-portable.cjs 生成）
+portable/sea-config.json
+portable/sea-prep.blob

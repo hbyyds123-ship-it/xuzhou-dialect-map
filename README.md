@@ -121,6 +121,27 @@ node tools/cross-browser.cjs      # 跨浏览器：本机每个可自动化的�
 > Firefox / Safari 本机无法自动化（前者 CDP 已移除、后者仅 macOS），README 的「浏览器支持」一节写清了
 > 代码为它们做了哪些降级，以及哪些只是"没跑过"——不拿 Chromium 的绿冒充全兼容。
 
+## 打包给别人（免安装 exe）
+
+```bash
+node tools/build-portable.cjs     # 或 npm run build:portable
+```
+
+产物在 `dist/`：
+
+| 文件 | 说明 |
+|---|---|
+| `徐州方言地图.exe` | 单文件（约 84 MB），双击即用。内置 Node 运行时 + 全部静态资源 + 一个只监听 `127.0.0.1` 的静态服务器 |
+| `使用说明.txt` | 给接收方看的一页说明 |
+| `徐州方言地图-免安装.zip` | 上面两个打成的包（约 32 MB），适合微信/邮件传输 |
+
+为什么要裹一个 exe：**浏览器不会在 `file://` 下给麦克风**，双击 HTML 只能看不能录。
+exe 启动时在本机起服务、再用默认浏览器打开 `http://127.0.0.1:8000/`，
+这才是能录音的来源；关掉那个命令行窗口，服务即停止。录音仍然只存在使用者本机浏览器里。
+
+`node tools/build-portable.cjs` 会在打包后自动跑一次 `--self-test`（起服务、取首页/采样台/脚本/three.js，
+全部 200 且内容命中才算过），避免发出一个打不开的 exe。
+
 ## 相关仓库
 
 - [xz-dialect-geo-data](https://github.com/22258-cmd/xz-dialect-geo-data) — 地理边界数据（权威版与降采样版）

@@ -14,8 +14,8 @@
   const KX = Math.cos(CY * Math.PI / 180) * SCALE;
 
   const CAT_COLOR = {
-    '曲艺': '#e8b54b', '戏曲': '#de5b48', '文献': '#6fa8c7',
-    '研究': '#9b8be0', '发音人': '#4fc3a1', '活动': '#e879a6', '方言词': '#c9a063'
+    '曲艺': '#8C6A3F', '戏曲': '#A63B2A', '文献': '#3F5A6B',
+    '研究': '#5E5470', '发音人': '#4B6B57', '活动': '#8A5A63', '方言词': '#6B655B'
   };
   const CAT_ICON = {
     '曲艺': '<path d="M9 17.5V6.2l9-1.7v11.3"/><circle cx="6.6" cy="17.8" r="2.4"/><circle cx="15.6" cy="16" r="2.4"/>',
@@ -100,12 +100,12 @@
   if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x060a0c, 0.0022);
+  scene.fog = new THREE.FogExp2(0xEFE7D6, 0.0019);
 
   const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 1400);
-  const HOME = { dist: 126, phi: 0.82, theta: 0 };
+  const HOME = { dist: 112, phi: 0.82, theta: 0 };
   camera.position.copy(new THREE.Vector3().setFromSpherical(
-    new THREE.Spherical(212, 0.58, -0.55)
+    new THREE.Spherical(178, 0.58, -0.55)
   ));
 
   const controls = new THREE.OrbitControls(camera, canvas);
@@ -120,84 +120,26 @@
   controls.maxPolarAngle = Math.PI * 0.455;
 
   /* 灯光 */
-  scene.add(new THREE.AmbientLight(0x8fa8b8, 0.95));
-  const key = new THREE.DirectionalLight(0xfff2d8, 1.15);
+  scene.add(new THREE.AmbientLight(0xFFF6E6, 0.46));
+  const key = new THREE.DirectionalLight(0xFFFBF0, 0.92);
   key.position.set(70, 130, 90); scene.add(key);
-  const rim = new THREE.DirectionalLight(0x4bb6d4, 0.62);
+  const rim = new THREE.DirectionalLight(0x9AA3A0, 0.30);
   rim.position.set(-110, 55, -95); scene.add(rim);
-  const fill = new THREE.DirectionalLight(0xd4a45c, 0.30);
+  const fill = new THREE.DirectionalLight(0xC8B79A, 0.22);
   fill.position.set(20, 40, -120); scene.add(fill);
-  const core = new THREE.PointLight(0xffcf80, 0.55, 320);
+  const core = new THREE.PointLight(0xFFF1D6, 0.22, 320);
   core.position.set(0, 46, 0); scene.add(core);
 
-  /* 地面辉光 */
-  (function ground() {
-    const c = document.createElement('canvas');
-    c.width = c.height = 512;
-    const g = c.getContext('2d');
-    const rg = g.createRadialGradient(256, 256, 10, 256, 256, 256);
-    rg.addColorStop(0, 'rgba(72,168,180,0.42)');
-    rg.addColorStop(0.35, 'rgba(40,104,120,0.20)');
-    rg.addColorStop(0.7, 'rgba(18,52,64,0.07)');
-    rg.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, 512, 512);
-
-    const tex = new THREE.CanvasTexture(c);
-    const geo = new THREE.PlaneGeometry(340, 340);
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex, transparent: true, depthWrite: false,
-      blending: THREE.AdditiveBlending, opacity: 0.95
-    });
-    const m = new THREE.Mesh(geo, mat);
-    m.rotation.x = -Math.PI / 2;
-    m.position.y = -6;
-    scene.add(m);
-
-    // 极坐标环
-    [64, 96, 132, 172].forEach((r, i) => {
-      const pts = [];
-      for (let a = 0; a <= 128; a++) {
-        const t = a / 128 * Math.PI * 2;
-        pts.push(new THREE.Vector3(Math.cos(t) * r, 0, Math.sin(t) * r));
-      }
-      const line = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({
-          color: 0x3f8fa4, transparent: true,
-          opacity: 0.20 - i * 0.035, depthWrite: false
-        })
-      );
-      line.position.y = -5.6;
-      scene.add(line);
-    });
-  })();
-
-  /* 星尘 */
-  let dust;
-  (function particles() {
-    const N = 420, pos = new Float32Array(N * 3);
-    for (let i = 0; i < N; i++) {
-      const r = 150 + Math.random() * 260;
-      const t = Math.random() * Math.PI * 2;
-      pos[i * 3] = Math.cos(t) * r;
-      pos[i * 3 + 1] = -40 + Math.random() * 130;
-      pos[i * 3 + 2] = Math.sin(t) * r;
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    dust = new THREE.Points(g, new THREE.PointsMaterial({
-      color: 0x9fd8e4, size: 1.1, transparent: true, opacity: 0.5,
-      depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
-    }));
-    scene.add(dust);
-  })();
+  /* 纸本皮肤：原来的"地面辉光"（青色光晕 + 极坐标环）与星尘已移除。
+     它们模拟的是屏幕光，在纸面上会变成一块发白的板子（实测过）。
+     现在靠 body::after 的一层纸面投影把地形"按"在纸上，见 css/paper.css。 */
 
   /* ---------------------- 地图 ---------------------- */
   const mapGroup = new THREE.Group();
   scene.add(mapGroup);
 
-  const TOP_COLORS = ['#2b4c56', '#274650', '#2d4b47', '#284852', '#2c4e58',
-    '#2a4550', '#2f4c53', '#294549', '#2d4a54', '#26444e'];
+  const TOP_COLORS = ['#B5A78C', '#AFA186', '#B9AB90', '#B2A487', '#B7A98E',
+    '#AC9E83', '#B8AA8F', '#B1A386', '#B6A88D', '#B0A285'];
 
   const districtMeshes = [];
   const districtMap = {};
@@ -230,7 +172,7 @@
       emissive: new THREE.Color(0x000000), emissiveIntensity: 1
     });
     const sideMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#0c181d'), roughness: 0.9, metalness: 0.18,
+      color: new THREE.Color('#B9AE99'), roughness: 0.95, metalness: 0.02,
       emissive: new THREE.Color(0x000000)
     });
 
@@ -250,7 +192,7 @@
         pts.push(pts[0].clone());
         const lg = new THREE.BufferGeometry().setFromPoints(pts);
         const line = new THREE.Line(lg, new THREE.LineBasicMaterial({
-          color: 0x8fd8e0, transparent: true, opacity: 0.34, depthWrite: false
+          color: 0x6B655B, transparent: true, opacity: 0.30, depthWrite: false
         }));
         lineGroup.add(line);
       });
@@ -282,8 +224,8 @@
     const beam = new THREE.Mesh(
       new THREE.CylinderGeometry(0.16, 0.42, h, 8, 1, true),
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(color), transparent: true, opacity: 0.16,
-        depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        color: new THREE.Color(color), transparent: true, opacity: 0.14,
+        depthWrite: false, side: THREE.DoubleSide
       })
     );
     beam.position.set(w.x, DEPTH + h / 2, w.z);
@@ -293,8 +235,8 @@
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(0.9, 1.5, 28),
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color(color), transparent: true, opacity: 0.55,
-        depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+        color: new THREE.Color(color), transparent: true, opacity: 0.42,
+        depthWrite: false, side: THREE.DoubleSide
       })
     );
     ring.rotation.x = -Math.PI / 2;
@@ -435,25 +377,25 @@
   function applyDistrictLook(r) {
     const on = r.selected, hv = r.hovered;
     if (on) {
-      r.capMat.emissive.setHex(0xa86a12);
-      r.capMat.emissiveIntensity = 0.85;
+      r.capMat.emissive.setHex(0xA63B2A);
+      r.capMat.emissiveIntensity = 0.22;
       r.lineGroup.children.forEach(l => {
-        l.material.color.setHex(0xffd98a);
-        l.material.opacity = 0.95;
+        l.material.color.setHex(0xA63B2A);
+        l.material.opacity = 0.85;
       });
     } else if (hv) {
-      r.capMat.emissive.setHex(0x2b6470);
-      r.capMat.emissiveIntensity = 0.9;
+      r.capMat.emissive.setHex(0x6B655B);
+      r.capMat.emissiveIntensity = 0.16;
       r.lineGroup.children.forEach(l => {
-        l.material.color.setHex(0xbdf2ff);
-        l.material.opacity = 0.62;
+        l.material.color.setHex(0x1B1A17);
+        l.material.opacity = 0.50;
       });
     } else {
       r.capMat.emissive.setHex(0x000000);
       r.capMat.emissiveIntensity = 1;
       r.lineGroup.children.forEach(l => {
-        l.material.color.setHex(0x8fd8e0);
-        l.material.opacity = 0.34;
+        l.material.color.setHex(0x6B655B);
+        l.material.opacity = 0.45;
       });
     }
     r.targetY = on ? 2.4 : 0;
@@ -1091,7 +1033,6 @@
       p.beam.material.opacity = 0.10 + k * 0.10;
     }
 
-    if (dust) dust.rotation.y += dt * 0.008;
 
     controls.update();
     updateScreenPositions();

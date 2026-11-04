@@ -128,6 +128,73 @@
   .no { color: var(--red) !important; }
   footer { margin-top: 22px; display: flex; gap: 10px; flex-wrap: wrap; }
   .note { color: var(--ink2); font-size: 11.5px; margin-top: 10px; }
+
+  /* ===== 纸本皮肤覆盖（方言普查档案）：只换视觉，不动结构与 id/class ===== */
+  :root{
+    --paper:#F3EDE1; --paper2:#E7DFCE; --paper3:#FBF7EE;
+    --ink:#1B1A17; --ink2:#6B655B; --zhu:#A63B2A; --rule:rgba(27,26,23,.18); --ruleS:rgba(27,26,23,.45);
+    --bg:var(--paper); --panel:var(--paper3); --line:var(--rule);
+    --gold:var(--zhu); --red:var(--zhu); --green:#4B6B57;
+  }
+  *{border-radius:0 !important;}
+  body{background:var(--paper); color:var(--ink); font:14px/1.75 "Songti SC","SimSun","Noto Serif SC",serif;}
+  body::before{display:none;}
+  .wrap{max-width:1080px; padding:34px 40px 90px;}
+  header{border-bottom:2px solid var(--ink); padding-bottom:12px; margin-bottom:16px; align-items:flex-end;}
+  h1{font-size:22px; font-weight:700; letter-spacing:.1em;}
+  h1 small{font-family:ui-monospace,Consolas,monospace; font-size:10px; letter-spacing:.18em; color:var(--ink2);}
+  .sub{font-size:12.5px; line-height:1.9;}
+  .backlink{font-size:11.5px; letter-spacing:.02em;}
+  .backlink a{color:var(--zhu); border-bottom:1px dotted var(--zhu);}
+  #selfcheck{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; border-top:1px solid var(--ruleS); border-bottom:1px solid var(--ruleS); margin-bottom:22px;}
+  .chk{border:none; border-right:1px solid var(--rule); border-radius:0; padding:7px 10px; font-size:11px; letter-spacing:.04em; color:var(--ink);}
+  .chk:last-child{border-right:none;}
+  .chk.ok{color:var(--ink); border-color:var(--rule);}
+  .chk.bad{color:var(--zhu); box-shadow:inset 2px 0 0 var(--zhu);}
+  .card{background:var(--paper3); border:1px solid var(--ruleS); padding:24px;}
+  .tag{font-size:10.5px; letter-spacing:.16em; padding:2px 7px; border:1px solid var(--ruleS); color:var(--ink2);}
+  .tag.new,.tag.old,.tag.home,.tag.sent{color:var(--ink2);}
+  .tag.atlas{color:#2C4650; border-color:rgba(44,70,80,.45);}
+  #promptIndex{font-family:ui-monospace,Consolas,monospace; font-size:10.5px; letter-spacing:.1em;}
+  #promptText{font-size:31px; line-height:1.25; font-weight:700; letter-spacing:.06em; margin:6px 0 10px;}
+  #promptHint{font-size:12.5px; line-height:1.95;}
+  button{border:1px solid var(--role,var(--ruleS)); border-radius:0; background:transparent; color:var(--ink); padding:9px 16px; font-size:13px; letter-spacing:.04em; transition:none;}
+  button:hover:not(:disabled){background:var(--paper2);}
+  button.primary{background:var(--zhu); border-color:var(--zhu); color:var(--paper);}
+  button.primary:hover:not(:disabled){background:#8E3223; border-color:#8E3223;}
+  button.ghost{background:transparent;}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:1px solid var(--zhu); outline-offset:1px;}
+  #recBtn{font-size:13.5px; padding:11px 20px; letter-spacing:.1em;}
+  #recBtn.rec{background:var(--zhu); border-color:var(--zhu); color:var(--paper);}
+  .dot{width:7px; height:7px; border-radius:50% !important; margin-right:8px;}
+  #recTimer{font-family:ui-monospace,Consolas,monospace; font-size:11.5px;}
+  #resultRow{margin-top:22px; padding-top:18px; border-top:2px solid var(--ink);}
+  #waveBox{background:var(--paper3); border:1px solid var(--ruleS); padding:10px; margin-bottom:10px;}
+  #metrics{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border-bottom:1px solid var(--ruleS); margin-bottom:18px; font-size:11.5px;}
+  #metrics > span{display:flex; flex-direction:column; gap:3px; padding:9px 12px 9px 0; border-top:1px solid var(--rule);}
+  #metrics b{font-family:ui-monospace,Consolas,monospace; font-weight:400; color:var(--ink); font-size:13px;}
+  #metrics .dim{grid-column:1/-1; border-top:none; padding:8px 0 0; color:var(--ink2); font-size:10.5px; letter-spacing:.06em;}
+  #metrics .bad{color:var(--zhu); font-weight:400;}
+  .todo{color:var(--zhu); border:1px solid var(--zhu); font-size:10.5px; padding:0 4px;}
+  .req{color:var(--zhu);}
+  .form label{font-size:11px; letter-spacing:.08em;}
+  .form input,.form select{background:transparent; border:1px solid var(--rule); border-bottom:1px solid var(--ruleS); padding:8px 2px; font-size:13px; font-family:inherit;}
+  .form input:focus,.form select:focus{border-bottom-color:var(--zhu);}
+  h2{font-size:11.5px; letter-spacing:.2em; color:var(--ink); border-bottom:1px solid var(--ink); padding-bottom:6px; margin-bottom:12px; font-weight:500;}
+  #progress{font-family:ui-monospace,Consolas,monospace; font-size:11.5px; letter-spacing:.04em;}
+  #bar{height:1px; background:var(--rule); margin-bottom:16px;}
+  #barFill{background:var(--zhu);}
+  #list{max-height:320px;}
+  .clip{border-bottom:1px solid var(--rule); padding:8px 0; font-size:12.5px;}
+  .clip .who{font-family:ui-monospace,Consolas,monospace; font-size:10.5px;}
+  .clip .del{color:var(--ink2); border-color:var(--rule);}
+  .empty{font-size:12px; color:var(--ink2);}
+  #banner{background:var(--ink); color:var(--paper); border-left:3px solid var(--zhu); border-radius:0; box-shadow:none; font-size:12.5px; letter-spacing:.02em;}
+  #consent,#quiz{background:rgba(27,26,23,.62);}
+  #quizMsg{font-size:12.5px;}
+  .ok{color:var(--green) !important;}
+  .no{color:var(--zhu) !important;}
+  .note{font-size:11.5px; line-height:1.9; color:var(--ink2);}
 </style>
 </head>
 <body>

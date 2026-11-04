@@ -251,7 +251,12 @@ function stats(frames, levels) {
     const parts = [];
     for (let g = 1; g <= 5; g++) {
       const y = PAD + (5 - g) / 4 * (H - PAD * 2);
-      parts.push('<line x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '" stroke="rgba(255,255,255,.07)"/>');
+      parts.push('<line x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '" stroke="rgba(27,26,23,.13)"/>');
+    }
+    // 方格纸：每 1/8 宽一条竖线（配上面的 5 条横线，做出记录纸的格子）
+    for (let gx = 1; gx < 8; gx++) {
+      const gxp = gx / 8 * W;
+      parts.push('<line x1="' + gxp + '" y1="0" x2="' + gxp + '" y2="' + H + '" stroke="rgba(27,26,23,.07)"/>');
     }
     let d = '', pen = false;
     frames.forEach((f, i) => {
@@ -261,7 +266,7 @@ function stats(frames, levels) {
       d += (pen ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
       pen = true;
     });
-    parts.push('<path d="' + d + '" fill="none" stroke="#e8c07a" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>');
+    parts.push('<path d="' + d + '" fill="none" stroke="#2A2723" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
     // 低置信帧不抹掉：画成灰点，并单独计数
     let low = 0;
     frames.forEach((f, i) => {
@@ -269,9 +274,9 @@ function stats(frames, levels) {
       low++;
       const x = (f.t / tMax) * W;
       const y = PAD + (5 - levels[i]) / 4 * (H - PAD * 2);
-      parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.2" fill="rgba(200,200,200,.55)"/>');
+      parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.2" fill="rgba(27,26,23,.35)"/>');
     });
-    if (low) parts.push('<text x="' + (W - 4) + '" y="' + (H - 4) + '" fill="rgba(200,200,200,.7)" font-size="9" text-anchor="end">低置信 ' + low + ' 帧</text>');
+    if (low) parts.push('<text x="' + (W - 6) + '" y="' + (H - 8) + '" fill="rgba(27,26,23,.5)" font-size="8.5" text-anchor="end">低置信 ' + low + ' 帧</text>');
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + parts.join('') + '</svg>';
   }
 
@@ -672,19 +677,19 @@ function encodeWavBase64(samples, sr) {
     rows.forEach(({ c }) => {
       const x = PAD + (c.common / 3) * (W - PAD * 2);
       const y = H - PAD - (c.correct / 2) * (H - PAD * 2);
-      pts += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4.5" fill="#c1503a" opacity=".85"><title>' +
+      pts += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" fill="#1B1A17" opacity=".9"><title>' +
         esc(c.saying || c.text) + '</title></circle>';
     });
     let grid = '';
     for (let i = 0; i <= 3; i++) {
       const x = PAD + (i / 3) * (W - PAD * 2);
-      grid += '<line x1="' + x + '" y1="' + PAD + '" x2="' + x + '" y2="' + (H - PAD) + '" stroke="rgba(255,255,255,.1)"/>';
-      grid += '<text x="' + x + '" y="' + (H - PAD + 14) + '" fill="#a99b86" font-size="9" text-anchor="middle">' + commName[i] + '</text>';
+      grid += '<line x1="' + x + '" y1="' + PAD + '" x2="' + x + '" y2="' + (H - PAD) + '" stroke="rgba(27,26,23,.15)"/>';
+      grid += '<text x="' + x + '" y="' + (H - PAD + 14) + '" fill="#6B655B" font-size="9" text-anchor="middle">' + commName[i] + '</text>';
     }
     for (let i = 0; i <= 2; i++) {
       const y = H - PAD - (i / 2) * (H - PAD * 2);
-      grid += '<line x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '" stroke="rgba(255,255,255,.1)"/>';
-      grid += '<text x="' + (PAD - 6) + '" y="' + (y + 3) + '" fill="#a99b86" font-size="9" text-anchor="end">' + corrName[i] + '</text>';
+      grid += '<line x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '" stroke="rgba(27,26,23,.15)"/>';
+      grid += '<text x="' + (PAD - 6) + '" y="' + (y + 3) + '" fill="#6B655B" font-size="9" text-anchor="end">' + corrName[i] + '</text>';
     }
 
     // 填补策略分布：导出物本身要能统计出三类各几条
@@ -717,19 +722,19 @@ function encodeWavBase64(samples, sr) {
       '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">',
       '<meta name="viewport" content="width=device-width,initial-scale=1">',
       '<title>方言存档 · ' + new Date().toISOString().slice(0, 10) + '</title><style>',
-      'body{background:#14100c;color:#ece3d4;font:14px/1.7 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif;margin:0;padding:28px}',
+      'body{background:#F3EDE1;color:#1B1A17;font:14px/1.75 "Songti SC","SimSun","Noto Serif SC",serif;margin:0;padding:34px}',
       '.w{max-width:900px;margin:0 auto}h1{font-size:19px;margin:0 0 4px}',
-      '.sub{color:#a99b86;font-size:12px;margin:0 0 22px}',
+      '.sub{color:#6B655B;font-size:12px;margin:0 0 22px}',
       'table{width:100%;border-collapse:collapse;margin-top:8px}',
-      'th,td{text-align:left;padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.09);vertical-align:top;font-size:13px}',
-      'th{color:#a99b86;font-weight:500;font-size:11px;letter-spacing:.1em}',
-      'audio{height:28px;width:180px}.g{color:#a99b86;font-size:11px}.m{font-variant-numeric:tabular-nums;color:#e8c07a}',
-      '.say{color:#e8c07a;font-size:15px;font-weight:600}.dim{color:#a99b86;font-size:11px}',
-      '.miss{color:#c1503a;font-size:11px}',
-      '.card{border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:16px;margin:18px 0}',
+      'th,td{text-align:left;padding:10px 8px;border-bottom:1px solid rgba(27,26,23,.18);vertical-align:top;font-size:13px}',
+      'th{color:#1B1A17;font-weight:500;font-size:11px;letter-spacing:.16em;border-bottom:2px solid #1B1A17}',
+      'audio{height:28px;width:180px}.g{color:#6B655B;font-size:11px}.m{font-variant-numeric:tabular-nums;font-family:ui-monospace,Consolas,monospace;color:#1B1A17}',
+      '.say{color:#1B1A17;font-size:15px;font-weight:600}.dim{color:#6B655B;font-size:11px}',
+      '.miss{color:#A63B2A;font-size:11px}',
+      '.card{border:1px solid rgba(27,26,23,.45);padding:16px;margin:18px 0}',
       '</style></head><body><div class="w">',
       '<h1>方言存档</h1><p class="sub">导出于 ' + new Date().toLocaleString('zh-CN') + ' · 共 ' + rows.length + ' 条 · 音频已内嵌，可离线打开</p>',
-      '<div class="card"><div style="font-size:11px;color:#a99b86;letter-spacing:.1em;margin-bottom:10px">分布观察</div>',
+      '<div class="card"><div style="font-size:11px;color:#1B1A17;letter-spacing:.16em;margin-bottom:10px;border-bottom:1px solid #1B1A17;padding-bottom:5px">分布观察</div>',
       '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:340px">' + grid + pts + '</svg>',
       '<div class="g" style="margin-top:6px">横轴＝流传范围，纵轴＝地道程度。右下＝地道且广传；左上＝不地道但流传广；左下＝只在你家。</div>',
       '<div class="g" style="margin-top:6px">这是<b>描述性快照</b>：坐标只有 3×4＝12 格，样本约 3 个说话人、组内不独立，因此只描述分布，不做统计推断。</div>',

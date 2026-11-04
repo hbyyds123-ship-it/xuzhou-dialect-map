@@ -90,10 +90,14 @@ async function main() {
       bcCounts = parseCounts(bc.out);
     }
 
-    const ok = e2e.code === 0 && (QUICK || bc.code === 0);
+    // exit 2 = 脚本在跑出任何判据之前就退了（浏览器起不来 / CDP 连不上）。
+    // 这不是"产品有问题"，是这台机器上这个浏览器用不了，所以只报「无法启动」不计失败；
+    // 真正的断言失败是 exit 1，那一定红。
+    const unrunnable = !e2eCounts && e2e.code === 2;
+    const ok = !unrunnable && e2e.code === 0 && (QUICK || bc.code === 0);
     results.push({
       browser: b.name, label: b.label, version: b.version,
-      e2e: e2eCounts, browserCheck: bcCounts, ok,
+      e2e: e2eCounts, browserCheck: bcCounts, ok, unrunnable,
       e2eExit: e2e.code, browserCheckExit: bc.code
     });
 
@@ -101,9 +105,12 @@ async function main() {
       (QUICK ? '' : `；browser-check ${bcCounts ? `${bcCounts.pass} 通过 / ${bcCounts.fail} 失败` : '未产出计数（exit ' + bc.code + '）'}`));
 
     // 失败的细节留一份，便于追溯
-    if (!ok) {
+    if (!ok || unrunnable) {
       fs.writeFileSync(path.join(__dirname, `cross-browser-${b.name}.log`), e2e.out + '\n' + bc.out);
       console.log(`      明细已写入 tools/cross-browser-${b.name}.log`);
+    }
+    if (unrunnable) {
+      console.log(`      ⚠ ${b.label} 起不来，已跳过（不计失败）：${b.path || '路径未知'}`);
     }
     i++;
   }
@@ -118,7 +125,8 @@ async function main() {
   console.log('-'.repeat(78));
   results.forEach((r) => {
     const fmt = (c) => (c ? `${c.pass} 通过 / ${c.fail} 失败` : '未跑/未出数');
-    console.log(w(r.label, 20) + w(r.version, 18) + w(fmt(r.e2e), 22) + w(QUICK ? '（--quick 跳过）' : fmt(r.browserCheck), 22) + (r.ok ? '✓' : '✗'));
+    const verdict = r.ok ? '✓' : (r.unrunnable ? '⚠ 起不来·已跳过' : '✗');
+    console.log(w(r.label, 20) + w(r.version, 18) + w(fmt(r.e2e), 22) + w(QUICK ? '（--quick 跳过）' : fmt(r.browserCheck), 22) + verdict);
   });
   skipped.forEach((b) => {
     console.log(w(b.label, 20) + w(b.version || (b.present ? '已安装' : '未安装'), 18) +
@@ -127,10 +135,16 @@ async function main() {
   });
   console.log('='.repeat(78));
 
-  const allOk = results.every((r) => r.ok);
+  const passed = results.filter((r) => r.ok);
+  const skippedRun = results.filter((r) => r.unrunnable);
+  // 一个都没真跑起来 → 不能算通过，否则"浏览器全挂了"会伪装成绿
+  const allOk = passed.length > 0 && results.every((r) => r.ok || r.unrunnable);
   console.log(allOk
-    ? `全部可自动化浏览器通过（${results.map((r) => r.label).join(' / ')}）`
-    : '有浏览器未通过，见上表与 tools/cross-browser-*.log');
+    ? `全部可自动化浏览器通过（${passed.map((r) => r.label).join(' / ')}）`
+      + (skippedRun.length ? `；${skippedRun.map((r) => r.label).join(' / ')} 起不来已跳过` : '')
+    : (passed.length === 0
+      ? '没有任何浏览器真正跑起来——这不是绿，是环境有问题，见 tools/cross-browser-*.log'
+      : '有浏览器未通过，见上表与 tools/cross-browser-*.log'));
 
   fs.writeFileSync(path.join(__dirname, 'cross-browser-result.json'),
     JSON.stringify({ at: new Date().toISOString(), node: process.version, quick: QUICK, results, skipped }, null, 2));

@@ -20,7 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 
 /* 路径按平台分组：Windows 是这台开发机，Linux/macOS 是给 CI 与别人的机器用的。
    环境变量优先（BROWSER_CHROME / BROWSER_EDGE …），方便 CI 里指到非标准安装位置。 */
@@ -95,8 +95,10 @@ const CANDIDATES = [
   }
 ];
 
-/** 读浏览器版本号；Windows 走 PowerShell 的 VersionInfo，其余平台跑 --version。
-    读不到就返回 ''，不阻断探测。 */
+/** 读浏览器版本号；Windows 走文件属性，其余平台跑 --version。
+    必须同时收 stdout 与 stderr —— Edge 在 Linux 上把版本打到 stderr，
+    只收 stdout 会得到空串，于是把"装好的 Edge"误判成"跑不起来"。
+    读不到就返回 ''。 */
 function versionOf(exe) {
   try {
     if (WIN) {
@@ -106,19 +108,23 @@ function versionOf(exe) {
       ], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] });
       return String(out).trim();
     }
-    const out = execFileSync(exe, ['--version'], {
-      encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore']
-    });
-    return String(out).trim().replace(/^[^0-9]*/, '');
+    const r = spawnSync(exe, ['--version'], { encoding: 'utf8', timeout: 8000 });
+    const out = String(r.stdout || '') + String(r.stderr || '');
+    const m = out.match(/(\d+\.\d+[\w.\-]*)/);
+    return m ? m[1] : '';
   } catch (e) { return ''; }
 }
 
 function probe(spec) {
   const hit = spec.paths.find((p) => p && fs.existsSync(p)) || null;
   const present = !!hit;
+  const version = present ? versionOf(hit) : '';
   let reason = '';
   if (!present) reason = '未安装';
   else if (spec.kind !== 'chromium') reason = spec.note || '非 Chromium 内核，本仓库自动化不支持';
+  // 只"文件存在"不够：CI runner 上常见 snap 包装、残留软链、被裁剪的二进制，
+  // 文件在但根本起不来（连 --version 都不给）。这种不该被排进待跑名单。
+  else if (!version) reason = '存在但跑不起来（连 --version 都没输出，可能是 snap 包装或残留软链）';
 
   return {
     name: spec.name,
@@ -126,8 +132,8 @@ function probe(spec) {
     kind: spec.kind,
     path: hit,
     present,
-    version: present ? versionOf(hit) : '',
-    canRun: present && spec.kind === 'chromium',
+    version,
+    canRun: present && spec.kind === 'chromium' && !!version,
     reason
   };
 }

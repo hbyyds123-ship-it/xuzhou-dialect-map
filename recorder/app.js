@@ -865,6 +865,17 @@ function encodeWavBase64(samples, sr) {
       }
     } catch (e) { /* hash 不合法：忽略 */ }
 
+    // 同一页里换 hash 也要跟过去（否则"再点一次同一个词的链接"没反应）
+    window.addEventListener('hashchange', function () {
+      const m2 = /(?:^|[#&])p=([^&]+)/.exec(location.hash || '');
+      if (!m2) return;
+      try {
+        const key = decodeURIComponent(m2[1]);
+        const k = P.findIndex((p) => p.atlasId === key || p.id === key || p.id === 'a-' + key);
+        if (k >= 0) { S.idx = k; drawPrompt(); }
+      } catch (e) { }
+    });
+
     // 没有深链就接着上次；从来没有过就从第 1 题开始
     if (!/(?:^|[#&])p=/.test(location.hash || '')) {
       try {
@@ -956,12 +967,21 @@ function encodeWavBase64(samples, sr) {
     clips.forEach((c) => {
       const aid = c.atlasId || ((P.find((p) => p.id === c.promptId) || {}).atlasId) || null;
       if (!aid) return;
-      const e = words[aid] || (words[aid] = { clips: [], newest: 0, clipId: null });
+      const e = words[aid] || (words[aid] = { clips: [], newest: 0, clipId: null, list: [] });
       e.clips.push(c.id);
+      /* list 存每条的摘要（说法/谁说的/哪一辈/时间），地图那边做"三代对照"时
+         不用为了列个表去翻 IndexedDB；真要出声仍按 clipId 取 blob。 */
+      e.list.push({
+        clipId: c.id, saying: c.saying || '', speaker: c.speaker || '',
+        gen: typeof c.gen === 'number' ? c.gen : null, at: c.createdAt
+      });
       if (c.createdAt > e.newest) {
         e.newest = c.createdAt; e.clipId = c.id;
         e.saying = c.saying || ''; e.speaker = c.speaker || ''; e.gen = c.gen;
       }
+    });
+    Object.keys(words).forEach((k) => {
+      words[k].list.sort((a, b) => (b.at || 0) - (a.at || 0));
     });
     try {
       localStorage.setItem(SAMPLE_KEY, JSON.stringify({

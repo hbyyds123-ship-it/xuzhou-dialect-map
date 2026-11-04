@@ -229,6 +229,8 @@
       })
     );
     beam.position.set(w.x, DEPTH + h / 2, w.z);
+    // 纸本皮肤下这根"光柱"会变成一根灰白细棍，像渲染瑕疵；点已经由 CSS 画了，这里不显示
+    beam.visible = false;
     spotGroup.add(beam);
 
     // 地面光环
@@ -674,22 +676,50 @@
      采集的动机在"看"这一侧：录完的词如果在地图里听不到，这件事就白做了。
      这里只读索引（localStorage）并按 clipId 从 IDB 取音频，没有录音就不出播放按钮，
      绝不用合成音冒充"你家的说法"。 */
+  const GEN_NAME = ['孩子', '我这一代', '父辈', '祖辈'];
+
+  /* 三代对照：同一个词，祖辈/父辈/我 各一条，一行一个人，点 ▶ 就播那一条。
+     这是"传承"最直观的样子——听得出差别，比任何统计都直接。 */
+  function genTable(list) {
+    if (!list || list.length < 2) return '';
+    const rows = list.slice().sort(function (a, b) {
+      const ga = (a.gen == null ? -1 : a.gen), gb = (b.gen == null ? -1 : b.gen);
+      if (ga !== gb) return gb - ga;          // 祖辈在上
+      return (b.at || 0) - (a.at || 0);
+    });
+    const body = rows.map(function (r) {
+      const g = r.gen != null && GEN_NAME[r.gen] ? GEN_NAME[r.gen] : '未标注';
+      return '<div class="gen-row">' +
+        '<span class="gen-n">' + esc(g) + '</span>' +
+        '<b class="gen-say">' + esc(r.saying || '（未填）') + '</b>' +
+        '<span class="gen-who">' + esc(r.speaker || '—') + '</span>' +
+        '<button class="say-play gen-play" data-clip="' + esc(r.clipId) + '" aria-label="播这一条">▶</button>' +
+        '</div>';
+    }).join('');
+    return '<div class="gen-table">' +
+      '<div class="gen-row gen-head"><span class="gen-n">辈分</span><span class="gen-say">说法</span>' +
+      '<span class="gen-who">谁说</span><span></span></div>' + body + '</div>';
+  }
+
   function saySection(w) {
     const S = window.XZ && window.XZ.sample;
     if (!S) return '';
     const meta = S.metaFor(w.id);
     if (meta && meta.clipId) {
-      const gens = ['孩子', '我这一代', '父辈', '祖辈'];
-      const who = [meta.speaker, meta.gen != null ? gens[meta.gen] : ''].filter(Boolean).join(' · ');
-      const n = (meta.clips && meta.clips.length) || 1;
-      return '<div class="p-sec"><h3>你家的说法</h3>' +
-        '<div class="say-row"><b class="say-w">' + esc(meta.saying || '（未填）') + '</b>' +
-        (who ? '<span class="say-who">' + esc(who) + '</span>' : '') +
-        '<span class="say-n">共 ' + n + ' 条</span></div>' +
+      const list = S.clipsFor(w.id);
+      const who = [meta.speaker, meta.gen != null ? GEN_NAME[meta.gen] : ''].filter(Boolean).join(' · ');
+      const n = list.length || (meta.clips && meta.clips.length) || 1;
+      const table = genTable(list);
+      return '<div class="p-sec"><h3>' + (table ? '三代对照' : '你家的说法') + '</h3>' +
+        (table
+          ? '<p class="gen-tip">同一个词，听一听家里几代人说的差别。</p>' + table
+          : '<div class="say-row"><b class="say-w">' + esc(meta.saying || '（未填）') + '</b>' +
+            (who ? '<span class="say-who">' + esc(who) + '</span>' : '') +
+            '<span class="say-n">共 ' + n + ' 条</span></div>') +
         '<div class="say-acts">' +
-        '<button class="say-play" data-say="' + esc(w.id) + '">▶ 播真人录音</button>' +
+        '<button class="say-play" data-say="' + esc(w.id) + '">▶ ' + (table ? '播最新一条' : '播真人录音') + '</button>' +
         (S.served() ? '' : '<span class="say-note">需用 node serve.cjs 打开才能播放</span>') +
-        '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去采样台看全部</a>' +
+        '<a class="say-go" href="recorder/#p=' + encodeURIComponent(w.id) + '">去采录看全部</a>' +
         '</div></div>';
     }
     return '<div class="p-sec"><h3>你家的说法</h3>' +
@@ -1157,6 +1187,15 @@
   document.addEventListener('click', function (e) {
     const b = e.target && e.target.closest ? e.target.closest('.say-play') : null;
     if (!b) return;
+    const clip = b.getAttribute('data-clip');
+    if (clip) {
+      b.textContent = '…';
+      window.XZ.sample.playClip(clip).then(function (ok) {
+        b.textContent = ok ? '✓' : '▶';
+        setTimeout(function () { b.textContent = '▶'; }, 1200);
+      });
+      return;
+    }
     const id = b.getAttribute('data-say');
     if (!id) return;
     b.textContent = '播放中…';

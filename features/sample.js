@@ -115,12 +115,11 @@
   /** 播一条真人录音。只有真的开播了才 resolve(true) ——
       自动播放策略会拒绝非用户手势的 play()，那种情况下必须让调用方回落合成音，
       否则就是"提示说有录音、其实一声不响"。 */
-  function play(atlasId) {
-    var m = metaFor(atlasId);
-    if (!served() || !m || !m.clipId) return Promise.resolve(false);
-    return clipURL(m.clipId).then(function (u) {
+  /** 播一条指定 clip（三代对照要播"祖辈那条"，不能只播最新） */
+  function playClip(clipId, note) {
+    if (!served() || !clipId) return Promise.resolve(false);
+    return clipURL(clipId).then(function (u) {
       var a = new Audio(u);
-      var done = function (ok) { return ok; };
       return new Promise(function (res) {
         var settled = false;
         var timer = setTimeout(function () { if (!settled) { settled = true; res(false); } }, 1500);
@@ -129,9 +128,8 @@
           p.then(function () {
             if (settled) return;
             settled = true; clearTimeout(timer);
-            var who = m.speaker ? ' · ' + m.speaker : '';
-            toast('真人录音 · 你家的说法「' + (m.saying || '') + '」' + who + ' · 共 ' + m.clips.length + ' 条，播最新一条');
-            res(done(true));
+            if (note) toast(note);
+            res(true);
           }).catch(function () {
             if (settled) return;
             settled = true; clearTimeout(timer); res(false);
@@ -141,6 +139,21 @@
         }
       });
     }).catch(function () { return false; });
+  }
+
+  function play(atlasId) {
+    var m = metaFor(atlasId);
+    if (!served() || !m || !m.clipId) return Promise.resolve(false);
+    var who = m.speaker ? ' · ' + m.speaker : '';
+    var n = (m.list && m.list.length) || (m.clips && m.clips.length) || 1;
+    return playClip(m.clipId,
+      '真人录音 · 你家的说法「' + (m.saying || '') + '」' + who + ' · 共 ' + n + ' 条，播最新一条');
+  }
+
+  /** 这个词的所有录音摘要（按时间倒序）；老索引没有 list 时返回空数组 */
+  function clipsFor(atlasId) {
+    var m = metaFor(atlasId);
+    return (m && m.list) ? m.list.slice() : [];
   }
 
   /**
@@ -204,6 +217,8 @@
       return (m && m.clipId) ? clipURL(m.clipId) : Promise.reject(new Error('no-clip'));
     },
     play: play,
+    playClip: playClip,
+    clipsFor: clipsFor,
     speakOrSynth: speakOrSynth,
     reloadIndex: reloadIndex
   };

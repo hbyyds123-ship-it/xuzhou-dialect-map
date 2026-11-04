@@ -8,7 +8,9 @@
     "smoke": "node tools/smoke.cjs",
     "build:portable": "node tools/build-portable.cjs",
     "icon": "node portable/make-icon.cjs",
-    "refs": "node tools/scan-refs.cjs"
+    "refs": "node tools/scan-refs.cjs",
+    "new-volume": "node tools/new-volume.cjs",
+    "volume": "node tools/check-volume.cjs"
   },
   "devDependencies": {
     "playwright": "^1.48.0",

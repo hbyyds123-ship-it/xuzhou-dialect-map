@@ -16,6 +16,9 @@
   var q = null;         // 当前局
   var KEY = ['A', 'B', 'C', 'D'];
 
+  /* 方言名从卷数据来：这一句在每个方言区都得跟着换，不能写死 */
+  var DIALECT = (window.XZ && window.XZ.volume && window.XZ.volume.dialect) || '徐州话';
+
   /* ---------------- 语音 ---------------- */
   var audio = {
     speak: function (text, rate) {
@@ -48,7 +51,7 @@
     var el = root.querySelector('[data-src]');
     if (!el) return;
     if (src === 'ref') {
-      el.textContent = '范本音 · 徐州话';
+      el.textContent = '范本音 · ' + DIALECT;
       el.className = 'q-src ref';
     } else if (src === 'real') {
       el.textContent = '你家的录音';
@@ -64,7 +67,7 @@
         el.textContent = '有真人录音 · 点 ▶ 播放';
         el.className = 'q-src pending';
       } else {
-        el.textContent = '普通话合成 · 不是徐州话';
+        el.textContent = '普通话合成 · 不是' + DIALECT;
         el.className = 'q-src synth';
       }
     }
@@ -169,7 +172,7 @@
       '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>' +
       '<span>听发音</span></button>' +
       '<span class="q-src" data-src></span>' +
-      '<div class="q-ask">这句徐州话的意思是？</div>' +
+      '<div class="q-ask">这句' + esc(DIALECT) + '的意思是？</div>' +
       '</div>' +
 
       '<div class="q-opts">' + opts + '</div>' +

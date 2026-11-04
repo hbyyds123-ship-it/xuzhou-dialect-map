@@ -4,6 +4,10 @@
 
 以 3D 彭城为核心，承载徐州 10 个区县、20 处方言点的方言词条、方言点与方言小游戏。纯前端实现，**无需构建、无需安装依赖**，双击 `index.html` 即可运行。
 
+**徐州是第 1 卷，不是全部。** 引擎（录音 / 声调分析 / 学习 / 传承 / 导出 / 打包）与地方数据分开：
+换掉 `data/volume.js` 与 `data/` 下的词表、边界、方言点、范本音，同一套代码就是另一座城。
+开一卷：`npm run new-volume -- <卷 id> <地名>`。详见 **[VOLUMES.md](VOLUMES.md)**。
+
 **许可**：代码以 MIT 授权；词条、拼音、例句、关卡与对话文本、缩略图以 CC BY-SA 4.0 授权；`data/geo.xuzhou.js` 的边界数据**来源待考、不主张授权**。详见 `LICENSE` 与 `NOTICE.md`。
 
 ## 功能
@@ -17,6 +21,31 @@
 - **范本音**：请发音人照词条念一遍的"给定方言"教学录音。学习侧（听音选词）优先播它，其次是你家的录音，都没有才是合成音并标注出来。随包分发（放 `data/ref-audio/` + `npm run refs`）或由用户直接拖进词条册，两种都行
 - **方言采样台**（`recorder/`）：给词表与自家的说法录音，声调当场算成曲线与读数，存档是一个能脱离本程序打开的单文件 HTML。装上后「听发音」优先播**你家的真人录音**，没有录音时才回落合成音并明说那是普通话合成
 - **探索进度**：底部队县导航 + 侧栏探索进度条
+
+## 一卷一个地方
+
+这不是"一个徐州 App"，是**一卷可以复制的地方志**。两层分得很干净：
+
+| 层 | 文件 | 换一卷 |
+|---|---|---|
+| **引擎** | `core/` `features/` `css/` `js/` `recorder/` `tools/` `portable/` | 不动 |
+| **卷** | `data/volume.js` `data/atlas.js` `data/geo.*.js` `data/ref-audio/` `recorder/prompts.js` | 全换 |
+| 外壳 | `index.html` 里指向 `geo.*.js` 的那一行、`package.json` 的 name | 改一处 |
+
+引擎里和地方有关的只有一个对象 `window.VOLUME`（见 `data/volume.js`）。跟着它变的：
+顶栏品牌名、印章字、「第 N 卷」、浏览器标题、底部索引条、学习侧「这句××话的意思是？」、
+导出存档的抬头、打出来的 exe 名字。
+
+```
+npm run new-volume -- suqian 宿迁     # 生成 volumes/suqian/：卷信息 + 待办清单
+npm run volume                        # 卷体检：硬字段拦，来源字段提醒
+```
+
+仓库里的 `volumes/suqian/` 就是这条命令的产物（一个空脚手架，不含任何编造的词条）。
+
+**为什么不做"全国一张图"**：语料要人一家家去录、边界要审图号，两千个县拼不成一张合规底图。
+正确的形态是一套小引擎 + 很多个各自负责的卷。这个判断、成本估算、合规红线写在
+**[VOLUMES.md](VOLUMES.md)**，要接手的人看那一篇就够。
 
 ## 快速开始
 
@@ -113,9 +142,11 @@ data/atlas.js  ──(ATLAS.words 54 条，唯一真源)──▶  recorder/prom
 │   └── sample.js           # 采样台入口 + 真人发音优先链（读索引与 IndexedDB）
 ├── core/
 │   ├── router.js           # 路由
-│   └── store.js            # 状态管理与进度持久化
+│   ├── store.js            # 状态管理与进度持久化
+│   └── volume.js           # 把 data/volume.js 落到页面（标题/印章/卷号/方言名）
 ├── data/
 │   ├── atlas.js            # 方言词条与方言点数据（也是采样题库的真源）
+│   ├── volume.js           # 这一卷的元信息 —— 换卷的接口
 │   ├── refs.js             # 范本音清单（由 npm run refs 生成，别手改）
 │   ├── ref-audio/          # 范本音音频（随包分发的那部分）
 │   └── geo.xuzhou.js       # 徐州地理边界数据
@@ -124,9 +155,12 @@ data/atlas.js  ──(ATLAS.words 54 条，唯一真源)──▶  recorder/prom
 ├── recorder/               # 方言采样台（出题 → 录音 → 声调读数 → 标注 → 自包含存档）
 │   ├── index.html / app.js / prompts.js / prompts-atlas.js
 │   └── tools/              # selftest / e2e-check / anchor-check / extract / cross-check
+├── volumes/                # 其他卷的脚手架（npm run new-volume 的产物）
 ├── tools/
 │   ├── audit-reachability.cjs  # 静态守卫：有没有词条拿不到、场景有没有入口
-│   └── scan-refs.cjs       # 扫 data/ref-audio/ 生成 data/refs.js（npm run refs）
+│   ├── check-volume.cjs    # 卷体检：硬字段拦、来源字段提醒（npm run volume）
+│   ├── scan-refs.cjs       # 扫 data/ref-audio/ 生成 data/refs.js（npm run refs）
+│   └── new-volume.cjs      # 生成下一卷的骨架（npm run new-volume）
 ├── assets/thumbs/          # 各区县缩略图（SVG）
 └── vendor/
     ├── three.min.js        # Three.js

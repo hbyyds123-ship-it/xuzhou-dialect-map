@@ -121,7 +121,8 @@ async function main() {
     const home = await get(base);
     checks.push(['地图首页', home.code === 200 && home.body.includes('乡音册')]);
     const rec = await get(base + 'recorder/');
-    checks.push(['采样台', rec.code === 200 && rec.body.includes('方言采样台')]);
+    // 别拿标题文案当判据：标题会随卷变（改成「采录 · 乡音册」那天这条就误报过）
+    checks.push(['采样台', rec.code === 200 && rec.body.includes('id="recBtn"')]);
     const css = await get(base + 'css/paper.css');
     checks.push(['纸本样式', css.code === 200 && css.body.includes('--paper')]);
     const js = await get(base + 'js/app.js');

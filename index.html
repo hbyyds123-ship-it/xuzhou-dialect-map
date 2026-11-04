@@ -19,10 +19,10 @@
 <!-- ================= 顶栏 ================= -->
 <header class="topbar">
   <div class="brand">
-    <div class="brand-mark"><span>乡</span></div>
+    <div class="brand-mark"><span data-vol="mark">乡</span></div>
     <div class="brand-txt">
-      <h1>乡音册</h1>
-      <p>徐州方言档案<span class="dot">·</span>记录 · 学习 · 传承</p>
+      <h1 data-vol="title">乡音册</h1><em class="vol-tag" data-vol="no" title="一卷一个地方；换 data/volume.js 即另一卷">第 1 卷</em>
+      <p><span data-vol="subtitle">徐州方言档案</span><span class="dot">·</span>记录 · 学习 · 传承</p>
     </div>
   </div>
 
@@ -100,10 +100,12 @@
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
 <script src="data/geo.xuzhou.js"></script>
+<script src="data/volume.js"></script>
 <script src="data/atlas.js"></script>
 <script src="data/refs.js"></script>
 <script src="core/store.js"></script>
 <script src="core/router.js"></script>
+<script src="core/volume.js"></script>
 <script src="features/refs.js"></script>
 <script src="features/sample.js"></script>
 <script src="features/quiz.js"></script>

@@ -553,3 +553,43 @@ body::after {
 
 /* 有真人录音、但这次自动播放被拦了：不能写成"合成音"，否则像丢数据 */
 .q-src.pending { color: var(--zhu); }
+
+/* ---------- 卷号：让人一眼看出这是"第几卷"，不是一个孤立的 App ---------- */
+.brand-txt h1 { display: inline-block; vertical-align: middle; }
+.vol-tag {
+  display: inline-block; margin-left: 9px; vertical-align: middle;
+  font-style: normal; font-family: var(--mono); font-size: 9.5px;
+  letter-spacing: .14em; color: var(--ink-2);
+  border: 1px solid var(--rule-strong); padding: 2px 6px;
+  cursor: help;
+}
+@media (max-width: 720px) { .vol-tag { display: none; } }
+
+/* ---------- 关于本卷：把"这是第几卷"讲清楚的一张卡 ---------- */
+.about-body { padding-top: 4px; }
+.about-lead { margin: 0 0 14px; font-family: var(--serif); font-size: 15px; letter-spacing: .04em; color: var(--ink); }
+.about-list { margin: 0 0 18px; border-top: 1px solid var(--ink); }
+.about-row {
+  display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid var(--rule);
+}
+.about-row dt { font-size: 11px; letter-spacing: .1em; color: var(--ink-2); }
+.about-row dd { margin: 0; font-size: 12.5px; color: var(--ink); line-height: 1.7; }
+.about-miss { color: var(--ink-2); opacity: .55; }
+.about-note { border-left: 2px solid var(--zhu); padding: 2px 0 2px 14px; }
+.about-note p { margin: 0 0 10px; font-size: 12.5px; line-height: 1.95; color: var(--ink); }
+.about-note p:last-child { margin-bottom: 0; }
+.about-note code {
+  font-family: var(--mono); font-size: 11px;
+  background: var(--paper-2); padding: 1px 5px;
+}
+.about-cmd { margin-top: 12px; }
+.about-cmd code { font-size: 11.5px; padding: 4px 8px; display: inline-block; }
+.about-dim { color: var(--ink-2) !important; font-size: 11.5px !important; }
+
+/* 关于本卷：空着的那几栏要说清原因，不能只列"—" */
+.about-todo {
+  margin: -6px 0 16px; padding: 8px 10px;
+  border: 1px solid var(--rule); border-left: 2px solid var(--rule-strong);
+  font-size: 11.5px; line-height: 1.85; color: var(--ink-2);
+}

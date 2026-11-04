@@ -1,5 +1,5 @@
 /* ==========================================================
-   《乡音册》— 徐州方言数字地图
+   《乡音册》— 方言数字地图（引擎部分；具体是哪个地方见 data/volume.js）
    3D 地图 / 浮动图标 / 搜索 / 图鉴 / 方言挑战
    ========================================================== */
 (function () {
@@ -470,7 +470,9 @@
 
   /* ---------------------- UI：区县条 ---------------------- */
   const bar = $('#districtBar');
-  bar.innerHTML = '<span class="db-cap">徐州 · 10 区县</span>';
+  /* 卷名与区县数都从数据现取：换一卷，这条索引条自己就跟着变 */
+  const VOL = (window.XZ && window.XZ.volume) || { name: '徐州', dialect: '徐州话' };
+  bar.innerHTML = '<span class="db-cap">' + esc(VOL.name) + ' · ' + DISTRICTS.length + ' 区县</span>';
   DISTRICTS.forEach(function (d) {
     const b = document.createElement('button');
     b.className = 'chip';
@@ -1163,7 +1165,7 @@
             b.textContent = '…';
             window.XZ.refs.play(id).then(function (ok) {
               b.textContent = '♪';
-              toast(ok ? '范本音 · 请发音人录的徐州话' : '范本音没能播出来：文件可能不在。');
+              toast(ok ? '范本音 · 请发音人录的' + VOL.dialect : '范本音没能播出来：文件可能不在。');
             });
           } else {
             location.href = 'recorder/#p=' + encodeURIComponent(id);
@@ -1178,6 +1180,63 @@
     });
     modal.classList.add('on');
   }
+  /* ---------------------- 关于本卷 ----------------------
+     整个项目的立意都在这一张卡里：这不是一个徐州 App，是一卷可以复制的地方志。
+     入口做成"第 1 卷"那个小标签 —— 不明目张胆地占地方，但一眼看得见。
+     不写"更多产品"，写清引擎与卷的边界，因为那才是别人能接手的东西。 */
+  function openAbout() {
+    const V = (window.XZ && window.XZ.volume && window.XZ.volume.get()) || {};
+    /* 空着的三项不要一列"未填"了事 —— 那看起来像半成品。
+       它们空着是有原因的（个人整理、还没请人念、还没拿到审图号），
+       把原因说出来才叫如实，也更像一件有人负责的东西。 */
+    const missing = [
+      ['语料依据', V.survey],
+      ['范本音发音人', V.refsBy],
+      ['边界来源', V.mapSource]
+    ].filter(r => !r[1]).map(r => r[0]);
+    const row = (k, v) => '<div class="about-row"><dt>' + k + '</dt><dd>' +
+      (v ? esc(v) : '<span class="about-miss">—</span>') + '</dd></div>';
+
+    modalCard.innerHTML =
+      '<div class="mc-head"><div><div class="mc-eyebrow">关于</div>' +
+      '<h2 class="mc-title" style="font-size:19px">' + esc(V.title || '乡音册') + ' · 第 ' + (V.no || 1) + ' 卷</h2>' +
+      '</div><button class="mc-close" data-close>×</button></div>' +
+      '<div class="about-body">' +
+        '<p class="about-lead">' + esc(V.name || '') + '是这一卷。</p>' +
+        '<dl class="about-list">' +
+          row('范围', V.scope) +
+          row('语料依据', V.survey) +
+          row('范本音', V.refsBy ? '由 ' + V.refsBy + ' 录制' : '') +
+          row('边界数据', V.mapSource) +
+          row('授权', V.dataLicense ? '词条 ' + V.dataLicense + '；代码 MIT' : '') +
+        '</dl>' +
+        (missing.length
+          ? '<p class="about-todo">' + missing.join(' / ') + ' 这 ' + missing.length + ' 栏空着，不是漏了：' +
+            (missing.indexOf('范本音发音人') >= 0 ? '这一卷还没有一条请人念过的录音，' : '') +
+            '来源要能查，所以在拿到之前宁可空着。补法见 VOLUMES.md。</p>'
+          : '') +
+        '<div class="about-note">' +
+          '<p>这不是一个「徐州 App」，是<strong>一卷可以复制的地方志</strong>。</p>' +
+          '<p>引擎与卷是分开的：<code>core/ features/ css/ js/ recorder/ tools/</code> 不动；' +
+          '换掉 <code>data/</code> 里的词表、边界、方言点、范本音，同一套代码就是另一座城。' +
+          '录音、学习、传承这三件事的逻辑，在每个方言区都成立。</p>' +
+          '<p class="about-cmd"><code>npm run new-volume -- &lt;卷 id&gt; &lt;地名&gt;</code></p>' +
+          '<p class="about-dim">现在这一卷的 ' + WORDS.length + ' 个词里，' +
+            ((window.XZ.refs && window.XZ.refs.count()) ? '有 ' + window.XZ.refs.count() + ' 个请人念过' :
+              '还没有一个请人念过 —— 学习侧你能听到的仍是普通话合成音') + '。</p>' +
+        '</div>' +
+      '</div>';
+
+    $$('[data-close]', modalCard).forEach(b => b.addEventListener('click', closeModal));
+    modal.classList.add('on');
+  }
+
+  const volTag = $('.vol-tag');
+  if (volTag) {
+    volTag.addEventListener('click', openAbout);
+    volTag.style.cursor = 'pointer';
+  }
+
   // 走路由而不是直接开弹窗：这样地址栏反映"正在看图鉴"，浏览器返回键也有意义
   $('#btnBook').addEventListener('click', function () { ROUTER.go('book'); });
 
@@ -1310,7 +1369,7 @@
       b.textContent = '…';
       window.XZ.refs.play(ref).then(function (ok) {
         b.textContent = ok ? '♪ 再听一次' : '♪ 播范本音';
-        if (ok) toast('范本音 · 请发音人录的徐州话');
+        if (ok) toast('范本音 · 请发音人录的' + ((window.XZ.volume||{}).dialect || '徐州话'));
         else toast('范本音没能播出来：文件可能不在。');
       });
       return;

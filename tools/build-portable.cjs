@@ -17,12 +17,31 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const TMP = path.join(ROOT, 'portable');
-const EXE_NAME = '乡音册.exe';
+/* 卷名从 data/volume.js 读：换一卷，打出来的 exe 名字跟着变，
+   不然"多卷"就只是 README 里的一句话。 */
+function loadVolume() {
+  try {
+    const sandbox = { window: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'data/volume.js'), 'utf8'), sandbox, { filename: 'volume.js' });
+    const v = sandbox.window.VOLUME || {};
+    return {
+      title: v.title || '乡音册',
+      name: v.name || '',
+      dialect: v.dialect || '方言',
+      no: v.no || 1
+    };
+  } catch (e) {
+    return { title: '乡音册', name: '', dialect: '方言', no: 1 };
+  }
+}
+const VO = loadVolume();
+const EXE_NAME = VO.title + '.exe';
 
 const ASSETS = [
   'index.html',
@@ -30,8 +49,8 @@ const ASSETS = [
   'features/quiz.css', 'features/scene.css',
   'features/sample.js', 'features/refs.js', 'features/quiz.js', 'features/scene.js',
   'js/app.js',
-  'core/store.js', 'core/router.js',
-  'data/atlas.js', 'data/refs.js', 'data/geo.xuzhou.js',
+  'core/store.js', 'core/router.js', 'core/volume.js',
+  'data/atlas.js', 'data/refs.js', 'data/volume.js', 'data/geo.xuzhou.js',
   'vendor/three.min.js', 'vendor/OrbitControls.js',
   'recorder/index.html', 'recorder/app.js', 'recorder/prompts.js', 'recorder/prompts-atlas.js'
 ];
@@ -89,7 +108,7 @@ async function main() {
 
   // 3) 复制 node 本体，再注入 blob
   const IS_MAC = process.platform === 'darwin';
-  const exe = path.join(DIST, IS_MAC ? '乡音册' : EXE_NAME);
+  const exe = path.join(DIST, IS_MAC ? VO.title : EXE_NAME);
   fs.copyFileSync(process.execPath, exe);
   // macOS：node 本体带签名，注入前必须先去掉，装完再 ad-hoc 签名
   if (IS_MAC) {
@@ -133,19 +152,19 @@ async function main() {
 
   // 5) 一页说明
   fs.writeFileSync(path.join(DIST, '使用说明.txt'), [
-    '乡音册 · 徐州方言档案（免安装版）',
+    VO.title + ' · ' + VO.name + '方言档案（免安装版）',
     '',
     '怎么用',
     '  1. 双击「' + EXE_NAME + '」',
-    '  2. 会弹出一个黑色的命令行窗口，浏览器自动打开《乡音册》',
+    '  2. 会弹出一个黑色的命令行窗口，浏览器自动打开《' + VO.title + '》',
     '  3. 右上角一排按钮里最下面那个麦克风，进采样台录音',
     '  4. 用完关掉那个黑窗口就行（服务随之停止）',
     '',
     '听发音到底在播什么',
     '  「听发音」有三种来源，界面上会直接标出来：',
-    '    · 范本音 · 徐州话 —— 请发音人录的给定方言（最该学的那个）',
+    '    · 范本音 · ' + VO.dialect + ' —— 请发音人录的给定方言（最该学的那个）',
     '    · 你家的录音     —— 你自己在采样台录的',
-    '    · 普通话合成     —— 两者都没有时的兜底，不是徐州话，别拿它当范本',
+    '    · 普通话合成     —— 两者都没有时的兜底，不是' + VO.dialect + '，别拿它当范本',
     '',
     '加范本音',
     '  打开词条册，点「导入录音文件…」，或把 wav / mp3 直接拖进那个窗口。',

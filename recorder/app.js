@@ -57,7 +57,7 @@
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
   const P = window.PROMPTS || [];
 
-  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《乡音册》词表', free: '自定 · 你自己想录的' };
+  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《' + ((window.VOLUME && VOLUME.title) || '乡音册') + '》词表', free: '自定 · 你自己想录的' };
   /** 填补策略三分类：借音 / 意译 / 旧词延伸（导出后要能按这三类统计） */
   const STRATEGY = ['借音', '意译', '旧词延伸', '其他'];
   /** 判定人：策略归类必须标明是谁判的，记录者自评不当证据 */
@@ -742,7 +742,7 @@ function encodeWavBase64(samples, sr) {
     const html = [
       '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">',
       '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<title>方言存档 · ' + new Date().toISOString().slice(0, 10) + '</title><style>',
+      '<title>方言存档 · ' + ((window.VOLUME && VOLUME.name) || '') + ' · ' + new Date().toISOString().slice(0, 10) + '</title><style>',
       'body{background:#F3EDE1;color:#1B1A17;font:14px/1.75 "Songti SC","SimSun","Noto Serif SC",serif;margin:0;padding:34px}',
       '.w{max-width:900px;margin:0 auto}h1{font-size:19px;margin:0 0 4px}',
       '.sub{color:#6B655B;font-size:12px;margin:0 0 22px}',
@@ -754,7 +754,7 @@ function encodeWavBase64(samples, sr) {
       '.miss{color:#A63B2A;font-size:11px}',
       '.card{border:1px solid rgba(27,26,23,.45);padding:16px;margin:18px 0}',
       '</style></head><body><div class="w">',
-      '<h1>方言存档</h1><p class="sub">导出于 ' + new Date().toLocaleString('zh-CN') + ' · 共 ' + rows.length + ' 条 · 音频已内嵌，可离线打开</p>',
+      '<h1>方言存档 · ' + esc((window.VOLUME && VOLUME.name) || '') + '</h1><p class="sub">导出于 ' + new Date().toLocaleString('zh-CN') + ' · 共 ' + rows.length + ' 条 · 音频已内嵌，可离线打开</p>',
       '<div class="card"><div style="font-size:11px;color:#1B1A17;letter-spacing:.16em;margin-bottom:10px;border-bottom:1px solid #1B1A17;padding-bottom:5px">分布观察</div>',
       '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:340px">' + grid + pts + '</svg>',
       '<div class="g" style="margin-top:6px">横轴＝流传范围，纵轴＝地道程度。右下＝地道且广传；左上＝不地道但流传广；左下＝只在你家。</div>',

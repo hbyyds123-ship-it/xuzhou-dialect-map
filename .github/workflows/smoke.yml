@@ -15,6 +15,8 @@ jobs:
           node-version: '22'
       # 数据里存在、代码里没实现的解锁通路，这一步会直接红
       - run: node tools/audit-reachability.cjs
+      # 卷体检：换一卷时最怕"填了一半"，硬字段缺了这里会红（来源类字段只提醒）
+      - run: node tools/check-volume.cjs
 
   map-browser:
     name: 地图冒烟（Playwright）

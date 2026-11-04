@@ -31,6 +31,14 @@
     }
   };
 
+  /* 「听发音」优先链：有真人录音就播录音，否则回落上面的合成音。
+     模块缺席（单独拷走 features/ 或脚本没加载）时行为与改动前完全一致。 */
+  function speakWord(item, rate) {
+    var S = window.XZ && window.XZ.sample && window.XZ.sample.speakOrSynth;
+    if (S && item) S(item, audio, rate);
+    else if (item) audio.speak(item.w, rate);
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) {
       return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c];
@@ -139,7 +147,7 @@
 
     q.locked = false;
     bind();
-    setTimeout(function () { if (q && !q.locked) audio.speak(item.w, 0.72); }, 260);
+    setTimeout(function () { if (q && !q.locked) speakWord(item, 0.72); }, 260);
   }
 
   function S0() { return window.XZ.store.get(); }
@@ -150,7 +158,7 @@
 
     var play = root.querySelector('[data-play]');
     if (play) play.addEventListener('click', function () {
-      audio.speak(q.qs[q.i].item.w, 0.7);
+      speakWord(q.qs[q.i].item, 0.7);
       play.classList.add('on');
       setTimeout(function () { play.classList.remove('on'); }, 900);
     });

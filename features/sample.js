@@ -1,7 +1,7 @@
 /* ============================================================
    features/sample.js — 真人发音优先 + 采样台入口
    ------------------------------------------------------------
-   与 recorder/（方言采样台）之间的唯一契约：
+   与 recorder/（采录）之间的唯一契约：
 
      · 索引   localStorage 键 xzdt.sample.v1 —— 采样台每次存/删后重写，
               形状 { version, updatedAt, count, words: { <atlasId>: { clipId, clips[], saying, speaker, gen, newest } } }
@@ -200,7 +200,7 @@
     var b = document.getElementById('btnSample');
     if (!b) return;
     var n = count();
-    var tip = n ? '方言采样 · 已有 ' + n + ' 词真人录音' : '方言采样 · 录你家的说法';
+    var tip = n ? '采录 · 已有 ' + n + ' 词真人录音' : '采录 · 录你家的说法';
     b.setAttribute('data-tip', tip);
     b.setAttribute('aria-label', tip);
     b.addEventListener('click', function () {
@@ -219,7 +219,7 @@
     if (!b) return;
     var n = count();
     if (n) {
-      var tip = '方言采样 · 已有 ' + n + ' 词真人录音';
+      var tip = '采录 · 已有 ' + n + ' 词真人录音';
       b.setAttribute('data-tip', tip);
       b.setAttribute('aria-label', tip);
     }

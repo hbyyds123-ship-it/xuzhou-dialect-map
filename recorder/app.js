@@ -11,7 +11,7 @@
   // ········································································
   // ········································································
   // ········································································
-   app.js — 方言采样台引擎
+   app.js — 采录引擎
    ------------------------------------------------------------
    四块技术：
      ① 采集    getUserMedia + MediaRecorder，关闭 AGC/降噪，
@@ -78,6 +78,15 @@
   function esc(s) {
     return String(s == null ? '' : s).replace(/[<>&"]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]);
   }
+  /* 导出的文件名与抬头跟产品名走。
+     一份东西不该有五个名字（乡音册 / 方言采样 / 采录 / 方言存档 / 采样模式）——
+     十年后有人打开这个 HTML，看到的应该是同一个名字。 */
+  function VOL_TAG() {
+    var V = window.VOLUME || {};
+    return (V.title || '乡音册') + (V.name ? '-' + V.name : '') +
+      '-' + new Date().toISOString().slice(0, 10);
+  }
+
   /** 唯一的时长格式化函数：界面与存档 JSON 用同一份 */
   function fmtMs(ms) {
     if (ms == null || !isFinite(ms)) return '—';
@@ -107,9 +116,21 @@
     const mime = chooseMime();
     items.push(['录音格式', !!mime, mime || '浏览器不支持任何可用的 mime']);
 
-    $('#selfcheck').innerHTML = items.map(([name, ok, note]) =>
-      '<span class="chk ' + (ok ? 'ok' : 'bad') + '">' + (ok ? '✓ ' : '✗ ') + esc(name) +
-      (note && !ok ? ' · ' + esc(note) : '') + '</span>').join('');
+    /* 7 个检查项对"只想录一条"的人是七个看不懂的词（MediaRecorder / IndexedDB…）。
+       所以正常时只给一行结论，明细收进「检查项」；一旦有问题，自动展开并顶到最前面。
+       明细仍留在 DOM 里（测试与排查都要用），只是不占首屏。 */
+    const bad = items.filter((i) => !i[1]);
+    const line = bad.length
+      ? '✗ ' + bad[0][0] + ' 不可用' + (bad[0][2] ? ' · ' + bad[0][2] : '')
+      : '✓ 环境正常 · 可以录音';
+    $('#selfcheck').innerHTML =
+      '<div class="chk-line ' + (bad.length ? 'bad' : 'ok') + '">' + esc(line) + '</div>' +
+      '<details class="chk-more"' + (bad.length ? ' open' : '') + '>' +
+        '<summary>检查项 ' + (items.length - bad.length) + ' / ' + items.length + '</summary>' +
+        '<div class="chk-grid">' + items.map(([name, ok, note]) =>
+          '<span class="chk ' + (ok ? 'ok' : 'bad') + '">' + (ok ? '✓ ' : '✗ ') + esc(name) +
+          (note && !ok ? ' · ' + esc(note) : '') + '</span>').join('') + '</div>' +
+      '</details>';
 
     if (!served) banner('当前不是可用的运行环境，浏览器不会给麦克风权限。请用 http://127.0.0.1:8000 打开（见 README）。');
     return served && !!mime;
@@ -267,16 +288,15 @@ function stats(frames, levels) {
       pen = true;
     });
     parts.push('<path d="' + d + '" fill="none" stroke="#2A2723" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
-    // 低置信帧不抹掉：画成灰点，并单独计数
-    let low = 0;
+    // 低置信帧不抹掉：画成灰点（计数在技术细节里，不占图上位置）
     frames.forEach((f, i) => {
       if (!f.low || levels[i] <= 0) return;
-      low++;
       const x = (f.t / tMax) * W;
       const y = PAD + (5 - levels[i]) / 4 * (H - PAD * 2);
       parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.2" fill="rgba(27,26,23,.35)"/>');
     });
-    if (low) parts.push('<text x="' + (W - 6) + '" y="' + (H - 8) + '" fill="rgba(27,26,23,.5)" font-size="8.5" text-anchor="end">低置信 ' + low + ' 帧</text>');
+    /* 「低置信 N 帧」不再画在图上：它是测量日志，主行已经用一句话说了"要不要重录"。
+       数字仍保留在「技术细节」里，需要的人点开就有。 */
     return '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + parts.join('') + '</svg>';
   }
 
@@ -438,21 +458,35 @@ function stats(frames, levels) {
    */
   function metricsHTML(st, prompt) {
     const mode = hanLen(prompt && prompt.text) >= 4 ? 'none' : 'whole-span';
-    const sp = [];
-    sp.push('<span>语音时长 <b>' + fmtMs(st.voiceMs) + '</b></span>');
-    sp.push('<span>平均基频 <b>' + (st.mean ? Math.round(st.mean) + ' Hz' : '—') + '</b></span>');
-    sp.push('<span>F0 范围 <b>' + (st.voiced ? Math.round(st.f0min) + '–' + Math.round(st.f0max) + ' Hz' : '—') + '</b></span>');
-    sp.push('<span>动态 <b>' + (st.dynamicSemitones ? st.dynamicSemitones.toFixed(2) + ' 半音' : '—') + '</b></span>');
-    sp.push('<span>浊音帧 <b>' + st.voiced + ' / ' + st.total + '</b></span>');
-    if (st.jumps) sp.push('<span>倍频跳变 <b>' + st.jumps + '</b></span>');
-    if (st.lowConf) sp.push('<span>低置信 <b>' + st.lowConf + '</b></span>');
+    /* 录完之后用户只关心三件事：录上了吗 / 调子是什么样 / 要不要重录。
+       F0、浊音帧、倍频跳变、半音这些是测量日志，收进「技术细节」——
+       评审要看的仍然在，但不该占记录者的第一眼。 */
+    const jumpy = (st.jumps || 0) > 0 || (st.lowConf || 0) > 3;
+    const verdict = st.degraded ? '没听到人声，换一下麦克风或重录'
+      : jumpy ? '有几个音没抓稳，建议再录一条'
+      : '这次录得干净';
+
+    const main = [];
+    if (mode === 'whole-span') main.push('<span class="hl">调子 <b>' + esc(st.category || '—') + '</b></span>');
+    main.push('<span>时长 <b>' + fmtMs(st.voiceMs) + '</b></span>');
+    main.push('<span class="verdict ' + (st.degraded ? 'bad' : (jumpy ? 'warn' : 'ok')) + '">' + esc(verdict) + '</span>');
+
+    const tech = [];
+    tech.push('<span>平均基频 <b>' + (st.mean ? Math.round(st.mean) + ' Hz' : '—') + '</b></span>');
+    tech.push('<span>F0 范围 <b>' + (st.voiced ? Math.round(st.f0min) + '–' + Math.round(st.f0max) + ' Hz' : '—') + '</b></span>');
+    tech.push('<span>动态 <b>' + (st.dynamicSemitones ? st.dynamicSemitones.toFixed(2) + ' 半音' : '—') + '</b></span>');
+    tech.push('<span>浊音帧 <b>' + st.voiced + ' / ' + st.total + '</b></span>');
+    if (st.jumps) tech.push('<span>倍频跳变 <b>' + st.jumps + '</b></span>');
+    if (st.lowConf) tech.push('<span>低置信 <b>' + st.lowConf + '</b></span>');
     if (mode === 'whole-span') {
-      sp.push('<span class="hl">整段音高走向 <b>' + esc(st.category) + '</b></span>');
-      sp.push('<span>参考读数 <b>' + esc(st.contour) + '</b></span>');
-      sp.push('<span class="dim">非音节级</span>');
+      tech.push('<span>参考读数 <b>' + esc(st.contour || '—') + '</b></span>');
+      tech.push('<span>粒度 <b>整段 · 非音节级</b></span>');
     }
-    if (st.degraded) sp.push('<span class="bad">未检测到语音</span>');
-    return sp.join('');
+    if (st.degraded) tech.push('<span class="bad">未检测到语音</span>');
+
+    return '<div class="m-main">' + main.join('') + '</div>' +
+      '<details class="m-tech"><summary>技术细节</summary>' +
+      '<div class="m-grid">' + tech.join('') + '</div></details>';
   }
 
   /* ---------------- 渲染：列表与进度 ---------------- */
@@ -673,7 +707,7 @@ function encodeWavBase64(samples, sr) {
       delete o.blob;
       return o;
     });
-    download('方言存档-' + new Date().toISOString().slice(0, 10) + '.json',
+    download(VOL_TAG() + '.json',
       JSON.stringify({ exportedAt: new Date().toISOString(), total: rows.length, clips: rows }, null, 2));
   }
 
@@ -742,7 +776,7 @@ function encodeWavBase64(samples, sr) {
     const html = [
       '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">',
       '<meta name="viewport" content="width=device-width,initial-scale=1">',
-      '<title>方言存档 · ' + ((window.VOLUME && VOLUME.name) || '') + ' · ' + new Date().toISOString().slice(0, 10) + '</title><style>',
+      '<title>' + esc(VOL_TAG()) + '</title><style>',
       'body{background:#F3EDE1;color:#1B1A17;font:14px/1.75 "Songti SC","SimSun","Noto Serif SC",serif;margin:0;padding:34px}',
       '.w{max-width:900px;margin:0 auto}h1{font-size:19px;margin:0 0 4px}',
       '.sub{color:#6B655B;font-size:12px;margin:0 0 22px}',
@@ -754,7 +788,7 @@ function encodeWavBase64(samples, sr) {
       '.miss{color:#A63B2A;font-size:11px}',
       '.card{border:1px solid rgba(27,26,23,.45);padding:16px;margin:18px 0}',
       '</style></head><body><div class="w">',
-      '<h1>方言存档 · ' + esc((window.VOLUME && VOLUME.name) || '') + '</h1><p class="sub">导出于 ' + new Date().toLocaleString('zh-CN') + ' · 共 ' + rows.length + ' 条 · 音频已内嵌，可离线打开</p>',
+      '<h1>' + esc(VOL_TAG()) + '</h1><p class="sub">导出于 ' + new Date().toLocaleString('zh-CN') + ' · 共 ' + rows.length + ' 条 · 音频已内嵌，可离线打开</p>',
       '<div class="card"><div style="font-size:11px;color:#1B1A17;letter-spacing:.16em;margin-bottom:10px;border-bottom:1px solid #1B1A17;padding-bottom:5px">分布观察</div>',
       '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:340px">' + grid + pts + '</svg>',
       '<div class="g" style="margin-top:6px">横轴＝流传范围，纵轴＝地道程度。右下＝地道且广传；左上＝不地道但流传广；左下＝只在你家。</div>',
@@ -769,7 +803,7 @@ function encodeWavBase64(samples, sr) {
       '</div></body></html>'
     ].join('\n');
 
-    download('方言存档-' + new Date().toISOString().slice(0, 10) + '.html', html);
+    download(VOL_TAG() + '.html', html);
   }
 
   /* ---------------- 知情同意 ---------------- */

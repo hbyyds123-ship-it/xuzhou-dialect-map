@@ -146,9 +146,16 @@
   .sub{font-size:12.5px; line-height:1.9;}
   .backlink{font-size:11.5px; letter-spacing:.02em;}
   .backlink a{color:var(--zhu); border-bottom:1px dotted var(--zhu);}
-  #selfcheck{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; border-top:1px solid var(--ruleS); border-bottom:1px solid var(--ruleS); margin-bottom:22px;}
-  .chk{border:none; border-right:1px solid var(--rule); border-radius:0; padding:7px 10px; font-size:11px; letter-spacing:.04em; color:var(--ink);}
-  .chk:last-child{border-right:none;}
+  /* 自检：默认只一行结论，明细折叠。7 个术语平铺在首屏，等于把调试面板当界面。 */
+  #selfcheck{display:block; border-top:1px solid var(--ruleS); border-bottom:1px solid var(--ruleS); margin-bottom:20px;}
+  .chk-line{padding:9px 2px 8px; font-size:12.5px; letter-spacing:.04em; color:var(--ink);}
+  .chk-line.bad{color:var(--zhu);}
+  .chk-more > summary{cursor:pointer; list-style:none; padding:0 2px 9px; font-size:10.5px; letter-spacing:.12em; color:var(--ink2);}
+  .chk-more > summary::-webkit-details-marker{display:none;}
+  .chk-more > summary::after{content:' ▾';}
+  .chk-more[open] > summary::after{content:' ▴';}
+  .chk-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); border-top:1px solid var(--rule);}
+  .chk{border:none; border-right:1px solid var(--rule); border-bottom:1px solid var(--rule); border-radius:0; padding:6px 9px; font-size:10.5px; letter-spacing:.02em; color:var(--ink);}
   .chk.ok{color:var(--ink); border-color:var(--rule);}
   .chk.bad{color:var(--zhu); box-shadow:inset 2px 0 0 var(--zhu);}
   .card{background:var(--paper3); border:1px solid var(--ruleS); padding:24px;}
@@ -170,11 +177,24 @@
   #recTimer{font-family:ui-monospace,Consolas,monospace; font-size:11.5px;}
   #resultRow{margin-top:22px; padding-top:18px; border-top:2px solid var(--ink);}
   #waveBox{background:var(--paper3); border:1px solid var(--ruleS); padding:10px; margin-bottom:10px;}
-  #metrics{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0; border-bottom:1px solid var(--ruleS); margin-bottom:18px; font-size:11.5px;}
-  #metrics > span{display:flex; flex-direction:column; gap:3px; padding:9px 12px 9px 0; border-top:1px solid var(--rule);}
-  #metrics b{font-family:ui-monospace,Consolas,monospace; font-weight:400; color:var(--ink); font-size:13px;}
-  #metrics .dim{grid-column:1/-1; border-top:none; padding:8px 0 0; color:var(--ink2); font-size:10.5px; letter-spacing:.06em;}
-  #metrics .bad{color:var(--zhu); font-weight:400;}
+  /* 读数：主行三样（调子 / 时长 / 一句判断），术语折进「技术细节」 */
+  #metrics{margin-bottom:16px;}
+  #metrics .m-main{display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 18px; padding:9px 0; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);}
+  #metrics .m-main > span{font-size:11.5px; color:var(--ink2); letter-spacing:.04em;}
+  #metrics .m-main b{font-family:ui-monospace,Consolas,monospace; font-weight:400; color:var(--ink); font-size:14px; margin-left:5px;}
+  #metrics .m-main .hl b{font-size:16px;}
+  #metrics .verdict{margin-left:auto; border-left:2px solid var(--rule); padding-left:10px;}
+  #metrics .verdict.ok{color:var(--green);}
+  #metrics .verdict.warn{color:var(--zhu);}
+  #metrics .verdict.bad{color:var(--zhu); font-weight:700;}
+  #metrics .m-tech > summary{cursor:pointer; list-style:none; padding:8px 0 4px; font-size:10.5px; letter-spacing:.12em; color:var(--ink2);}
+  #metrics .m-tech > summary::-webkit-details-marker{display:none;}
+  #metrics .m-tech > summary::after{content:' ▾';}
+  #metrics .m-tech[open] > summary::after{content:' ▴';}
+  #metrics .m-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:0; font-size:10.5px;}
+  #metrics .m-grid > span{display:flex; flex-direction:column; gap:2px; padding:6px 10px 6px 0; border-top:1px solid var(--rule); color:var(--ink2);}
+  #metrics .m-grid b{font-size:12px;}
+  #metrics .m-grid .bad{color:var(--zhu);}
   .todo{color:var(--zhu); border:1px solid var(--zhu); font-size:10.5px; padding:0 4px;}
   .req{color:var(--zhu);}
   .form label{font-size:11px; letter-spacing:.08em;}
@@ -227,12 +247,23 @@
   .freerow input { flex: 1; min-width: 240px; padding: 8px 2px; font: inherit; font-size: 14px; background: transparent; color: var(--ink); border: 1px solid var(--rule); border-bottom: 1px solid var(--ruleS); }
   .freerow input:focus { border-bottom-color: var(--zhu); outline: none; }
   .tag.free { color: var(--ink-2); }
+
+  /* 补充信息：可留空的七项收在这里 */
+  .more-fields{grid-column:1/-1; border-top:1px dotted var(--rule); padding-top:10px; margin-top:2px;}
+  .more-fields > summary{cursor:pointer; list-style:none; font-size:10.5px; letter-spacing:.12em; color:var(--ink2);}
+  .more-fields > summary::-webkit-details-marker{display:none;}
+  .more-fields > summary::after{content:' ▾';}
+  .more-fields[open] > summary::after{content:' ▴';}
+  .mf-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-top:10px;}
+  /* 破坏性动作：不再和导出同样式 */
+  button.danger{color:var(--ink2); border-color:var(--rule);}
+  button.danger:hover:not(:disabled){background:transparent; color:var(--zhu); border-color:var(--zhu);}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <p class="backlink"><a href="../index.html">← 回《乡音册》</a>　·　本目录下 54 道词表题由 <code>../data/atlas.js</code> 实时派生，改词表即改题</p>
+  <p class="backlink"><a href="../index.html">← 回《乡音册》</a></p>
 
   <header>
     <h1>采录<small data-vol="recsmall">乡音册 · 第 1 卷</small></h1>
@@ -265,35 +296,12 @@
           <div id="waveBox"></div>
           <div id="metrics"></div>
           <div class="form">
+            <!-- 第一屏只留三样：说法、谁说、哪一辈。
+                 剩下七项（拼音/策略/谁判/释义/地道/范围/备注）都收进"补充信息"——
+                 录 15 条要面对 150 个输入框的话，没人录得到第 15 条。 -->
             <div class="wide">
               <label for="fSaying">你家的说法（用汉字写下来）<span class="req">*</span></label>
               <input id="fSaying" placeholder="例：洋柿子（不是「肯德基」）">
-            </div>
-            <div class="wide">
-              <label for="fSayingPy">这个说法的拼音 / 注音（可留空）</label>
-              <input id="fSayingPy" placeholder="例：yáng shì zi">
-            </div>
-            <div>
-              <label for="fStrategy">这说法属于哪类填补策略</label>
-              <select id="fStrategy">
-                <option value="">（不填）</option>
-                <option value="借音">借音 —— 直接照着外来词念</option>
-                <option value="意译">意译 —— 用本地话的意思造词</option>
-                <option value="旧词延伸">旧词延伸 —— 拿现成的旧词套新东西</option>
-                <option value="其他">其他</option>
-              </select>
-            </div>
-            <div>
-              <label for="fStrategyBy">这个归类是谁判的</label>
-              <select id="fStrategyBy">
-                <option value="记录者">记录者（我）</option>
-                <option value="长辈本人">长辈本人</option>
-                <option value="未知">未知</option>
-              </select>
-            </div>
-            <div class="wide">
-              <label for="fGloss">释义（可留空）</label>
-              <input id="fGloss" placeholder="例：肥皂">
             </div>
             <div>
               <label for="fSpeaker">谁在说</label>
@@ -308,27 +316,58 @@
                 <option value="0">孩子</option>
               </select>
             </div>
-            <div>
-              <label for="fCorrect">这说法地不地道</label>
-              <select id="fCorrect">
-                <option value="2">地道 · 纯方言说法</option>
-                <option value="1" selected>勉强 · 半土半普</option>
-                <option value="0">不像方言 · 基本照搬普通话</option>
-              </select>
-            </div>
-            <div>
-              <label for="fCommon">多大范围这么说</label>
-              <select id="fCommon">
-                <option value="3">到处都说</option>
-                <option value="2">本县/镇</option>
-                <option value="1">本村</option>
-                <option value="0" selected>只我家</option>
-              </select>
-            </div>
-            <div class="wide">
-              <label for="fNote">备注（谁教你的、什么场合说）</label>
-              <input id="fNote" placeholder="例：奶奶这么说，现在没人讲了">
-            </div>
+            <details class="more-fields">
+              <summary>补充信息（都可以留空）</summary>
+              <div class="mf-grid">
+                <div class="wide">
+                  <label for="fSayingPy">这个说法的拼音 / 注音</label>
+                  <input id="fSayingPy" placeholder="例：yáng shì zi">
+                </div>
+                <div>
+                  <label for="fStrategy">这说法属于哪类填补策略</label>
+                  <select id="fStrategy">
+                    <option value="">（不填）</option>
+                    <option value="借音">借音 —— 直接照着外来词念</option>
+                    <option value="意译">意译 —— 用本地话的意思造词</option>
+                    <option value="旧词延伸">旧词延伸 —— 拿现成的旧词套新东西</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="fStrategyBy">这个归类是谁判的</label>
+                  <select id="fStrategyBy">
+                    <option value="记录者">记录者（我）</option>
+                    <option value="长辈本人">长辈本人</option>
+                    <option value="未知">未知</option>
+                  </select>
+                </div>
+                <div class="wide">
+                  <label for="fGloss">释义</label>
+                  <input id="fGloss" placeholder="例：肥皂">
+                </div>
+                <div>
+                  <label for="fCorrect">这说法地不地道</label>
+                  <select id="fCorrect">
+                    <option value="2">地道 · 纯方言说法</option>
+                    <option value="1" selected>勉强 · 半土半普</option>
+                    <option value="0">不像方言 · 基本照搬普通话</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="fCommon">多大范围这么说</label>
+                  <select id="fCommon">
+                    <option value="3">到处都说</option>
+                    <option value="2">本县/镇</option>
+                    <option value="1">本村</option>
+                    <option value="0" selected>只我家</option>
+                  </select>
+                </div>
+                <div class="wide">
+                  <label for="fNote">备注（谁教你的、什么场合说）</label>
+                  <input id="fNote" placeholder="例：奶奶这么说，现在没人讲了">
+                </div>
+              </div>
+            </details>
           </div>
           <div class="actions">
             <button id="saveBtn" class="primary">保存这一条</button>
@@ -342,9 +381,9 @@
         <button id="exportHtml" class="primary">导出单文件存档（可离线打开）</button>
         <button id="exportJson" class="ghost">导出 JSON</button>
         <button id="quizBtn" class="ghost">开始听音选词</button>
-        <button id="clearBtn" class="ghost">清空全部</button>
+        <button id="clearBtn" class="ghost danger" title="先导出再清空；清空不可恢复">清空全部</button>
       </footer>
-      <p class="note">录音与标注只存在这台电脑的浏览器里（IndexedDB）。导出后是一个单独的 HTML 文件，双击就能听，不需要本程序，也不需要联网。</p>
+      <p class="note">录音和标注只存在这台电脑的浏览器里。「导出单文件存档」会给你一个双击就能打开的 HTML，不需要本程序，也不需要联网。</p>
     </main>
 
     <aside>

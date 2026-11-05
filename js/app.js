@@ -1091,7 +1091,7 @@
         badge +
         '<div class="bk-w">' + (i.unlocked ? esc(i.w.w) : '？？') + '</div>' +
         '<div class="bk-p">' + (i.unlocked ? esc(i.w.p || '') : '未解锁') + '</div>' +
-        '<div class="bk-m">' + (i.unlocked ? esc(i.w.m) : '闯关答对即可解锁') + '</div>' +
+        '<div class="bk-m">' + (i.unlocked ? esc(i.w.m) : '闯关、录音、范本音 都能解锁') + '</div>' +
         '</div>';
     });
 
@@ -1108,7 +1108,7 @@
                   (r.bundled ? ' disabled title="随包分发的范本音要改 data/refs.js"' : '') + '>✕</button>' +
                 '</div>';
             }).join('')
-          : '<p class="refs-empty">还没有范本音。请发音人按词条念一遍，把 wav / mp3 拖进这个窗口就行。</p>'
+          : '<p class="refs-empty">本卷还没有随包的范本音。请发音人按词条念一遍，把 wav / mp3 拖进这个窗口（或点上面的「导入录音文件…」）。</p>'
         ) + '</div>'
       : '';
 

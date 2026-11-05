@@ -2,7 +2,7 @@
    browser-check.cjs — 浏览器端验证（CDP，免第三方依赖）
    ------------------------------------------------------------
    用 Chrome 的 DevTools Protocol 直接开页面、读 DOM，不装 Playwright。
-   覆盖 A7（file:// 徽标红 + 按钮禁用）、A8（127.0.0.1 六徽标绿 + 按钮可用），
+   覆盖 A7（file:// 一行报错 + 按钮禁用）、A8（127.0.0.1 一行「环境正常」+ 明细全绿 + 按钮可用），
    以及「0 console error」这一条基础判据。
 
    用法：node tools/browser-check.cjs [端口] [浏览器]
@@ -127,7 +127,9 @@ async function runCdp(wsUrl, baseUrl) {
     ws.removeEventListener('message', onMsg);
     const probe = await evalJs(`(()=>{
       const chks=[...document.querySelectorAll('#selfcheck .chk')];
+      const line=(document.querySelector('#selfcheck .chk-line')||{}).textContent||'';
       return {
+        line: line.trim(),
         badges: chks.length,
         ok: chks.filter(c=>c.classList.contains('ok')).length,
         bad: chks.filter(c=>c.classList.contains('bad')).length,
@@ -149,9 +151,9 @@ async function runCdp(wsUrl, baseUrl) {
   const h = out.http.probe, f = out.file.probe;
   // 徽标个数不写死：不同浏览器能提供的 API 不同（例如没有 OfflineAudioContext 的就会多一个红徽标），
   // 真正要守的是「在这台机器的这个浏览器下，127.0.0.1 打开时不该有红徽标」。
-  check('A8', '127.0.0.1 下所有自检徽标全绿、录音按钮可用',
-    !!h && h.badges >= 6 && h.ok === h.badges && h.recDisabled === false,
-    h ? `徽标 ${h.ok}/${h.badges} 绿（${h.texts.map((t) => t.replace(/^[✓✗]\s*/, '')).join(' / ')}），录音按钮禁用=${h.recDisabled}` : '页面未加载');
+  check('A8', '127.0.0.1 下首屏一行「环境正常」、明细全绿、录音按钮可用',
+    !!h && h.badges >= 6 && h.ok === h.badges && h.recDisabled === false && /环境正常/.test(h.line || ''),
+    h ? `首屏「${h.line}」，明细 ${h.ok}/${h.badges} 绿，录音按钮禁用=${h.recDisabled}` : '页面未加载');
   check('A7', 'file:// 下运行环境徽标为红、录音按钮禁用',
     f && f.bad >= 1 && f.recDisabled === true,
     f ? `红徽标 ${f.bad} 个，按钮禁用=${f.recDisabled}（${f.texts[0] || ''}）` : '页面未加载');

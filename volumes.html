@@ -60,7 +60,10 @@
   .imp-bad{font-size:13px;color:var(--zhu);border-left:2px solid var(--zhu);padding:2px 0 2px 10px;margin-bottom:6px}
   .imp-note{font-size:11.5px;color:var(--ink2);line-height:1.85;padding-left:12px}
   .imp-note.bad{color:var(--zhu)}
-  .imp-act a{font-size:12.5px;color:var(--zhu);text-decoration:none;border-bottom:1px dotted var(--zhu)}
+  .imp-act{margin-top:8px}
+  .imp-go{font:inherit;font-size:12.5px;padding:5px 0;border:none;border-bottom:1px solid var(--zhu);
+    background:transparent;color:var(--zhu);cursor:pointer;letter-spacing:.02em}
+  .imp-go:hover{background:var(--zhu);color:var(--paper)}
 
   .existing{margin-top:34px;border-top:2px solid var(--ink);padding-top:14px}
   .ex-row{display:grid;grid-template-columns:56px 1fr 92px auto;gap:10px;align-items:center;
@@ -154,7 +157,7 @@
 <section>
   <div class="sec-h"><span class="no">05</span><b>导入已有的一卷</b><span>别人导出的 .json，拖进来就能还回来</span></div>
   <div class="imp-drop" id="impDrop">
-    <p>把那一卷的 <code>.json</code> 拖到这里，或选文件。导入会另存为新的一卷，不覆盖已有的。</p>
+    <p>把那一卷的 <code>.json</code> 拖到这里，或选文件。导入会另存为新的一卷、不覆盖已有的，<b>也不会切走你现在这一卷</b>；一卷最多 500 个词。</p>
     <button class="ghost" id="impPick">选一个卷文件…</button>
     <input type="file" id="impFile" accept=".json,application/json" hidden>
   </div>
@@ -220,6 +223,13 @@
     if (!name) { err.textContent = '先写下地名 —— 这一卷叫什么是它的身份。'; $('#fName').focus(); return; }
     if (!districts.length) { err.textContent = '至少填一个片区，图才有分幅。'; return; }
     if (!words.length) { err.textContent = '词表是空的。一行一个词，最少一条也算开卷。'; $('#fWords').focus(); return; }
+    /* 与导入同一个上限：不然建出来的卷导不回去（导出 → 导入会被自己的校验拒掉） */
+    if (words.length > (V.maxWords || 500)) {
+      err.textContent = '词表有 ' + words.length + ' 个词，超过 ' + (V.maxWords || 500) +
+        ' 个 —— 一卷是能被走完的规模，不是数据库；请拆成几卷再建。';
+      $('#fWords').focus();
+      return;
+    }
 
     var vol = V.create({
       title: '乡音册',
@@ -246,7 +256,8 @@
         '<div class="imp-ok">已导入「' + esc(r.volume.name) + '」—— 第 ' + r.volume.no + ' 卷 · ' +
           r.stats.districts + ' 个片区 · ' + r.stats.words + ' 个词 · id ' + esc(r.volume.id) + '</div>' +
         r.notes.map(function (n) { return '<div class="imp-note">· ' + esc(n) + '</div>'; }).join('') +
-        '<div class="imp-act"><a href="index.html">去看这一卷 →</a></div>';
+        // 导入 ≠ 切换：报告里给一个显式入口，点了才切
+        '<div class="imp-act"><button class="imp-go" data-act="' + esc(r.volume.id) + '">去看这一卷 →</button></div>';
       renderExisting();
     } else {
       var errs = (r && r.errors) || [{ msg: '读不出这份文件' }];
@@ -265,11 +276,19 @@
         renderImport({ ok: false, errors: [{ msg: '不是合法的 JSON：' + e.message }] });
         return;
       }
-      renderImport(V.importJSON(doc));
+      // 导入不切换当前卷：用户"还回来一份卷"的时候，不该被换掉工作面
+      renderImport(V.importJSON(doc, { activate: false }));
     };
     fr.onerror = function () { renderImport({ ok: false, errors: [{ msg: '读文件失败' }] }); };
     fr.readAsText(file);
   }
+
+  $('#impReport').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!b) return;
+    V.activate(b.getAttribute('data-act'));
+    location.href = 'index.html';
+  });
 
   $('#impPick').addEventListener('click', function () { $('#impFile').click(); });
   $('#impFile').addEventListener('change', function () { doImport(this.files && this.files[0]); this.value = ''; });

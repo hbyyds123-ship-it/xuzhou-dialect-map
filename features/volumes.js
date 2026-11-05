@@ -18,6 +18,10 @@
   var KEY = 'xzdt.volumes.v1';
   var FORMAT = 'xiangyince-volume/1';
   var MAX_DISTRICTS = 6;
+  /* 一卷是"能被走完的规模"，不是数据库。
+     500 与"一学期录完"的量级一致；上限不写在导入这一侧，产品边界就只存在于 README。 */
+  var MAX_WORDS = 500;
+  var RING = ['②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
 
   function read() {
     try {
@@ -303,7 +307,32 @@
       }
     }
 
+    // 词数上限。文案必须给数字与出口 —— 只说"太多"等于让人无从下手
+    if (Array.isArray(ws) && ws.length > MAX_WORDS) {
+      err('words-too-many', '这一卷有 ' + ws.length + ' 个词，超过 ' + MAX_WORDS +
+        ' 个 —— 一卷是能被走完的规模，不是数据库；请拆成几卷，或删掉重复项');
+    }
+
     if (errs.length) return { ok: false, errors: errs };
+
+    /* 片区重名：词重名会拒（图上会叠成一个点），同一条理由对片区完全成立
+       （分幅图并排两个「城关」，词点归属说不清）。这里自动加序号并在 notes 里告知，
+       因为"整份拒掉"对一份别人辛苦整理的卷太重。 */
+    var renamed = [];
+    (function dedupeDistricts() {
+      var seenD = {};
+      for (var di = 0; di < dNames.length; di++) {
+        var base = dNames[di];
+        if (!seenD[base]) { seenD[base] = 1; continue; }
+        var k = 2;
+        var nn = base + RING[0];
+        while (seenD[nn]) { k++; nn = base + (RING[k - 2] || ('(' + k + ')')); }
+        seenD[base] = k;
+        seenD[nn] = 1;
+        renamed.push(base + ' / ' + nn);
+        dNames[di] = nn;
+      }
+    })();
 
     // 同名不覆盖：另存为新卷，并把"卷号怎么来的"说清楚
     var db = read();
@@ -344,7 +373,15 @@
         ? '已有同名的「' + name + '」（第 ' + sameName.no + ' 卷），没有覆盖它 —— 这一卷另存为第 ' + vol.no + ' 卷'
         : '这是本机第一次导入「' + name + '」'
     ];
-    if (!(opts && opts.activate === false)) notes.push('已切到这一卷');
+    if (renamed.length) {
+      notes.push('有两个片区同名，已标成 ' + renamed.join('、') +
+        '（否则分幅图上并排两个同名格，词点归属说不清）；想改名就在开一卷页里重填');
+    }
+    if (opts && opts.activate === false) {
+      notes.push('没有切过去：当前还是原来那一卷。要看这一卷，点下面的「去看这一卷」');
+    } else {
+      notes.push('已切到这一卷');
+    }
 
     return {
       ok: true, volume: vol, notes: notes,
@@ -370,6 +407,8 @@
     layoutWords: layoutWords,
     exportJSON: exportJSON,
     importJSON: importJSON,
-    format: FORMAT
+    format: FORMAT,
+    maxWords: MAX_WORDS,
+    maxDistricts: MAX_DISTRICTS
   };
 })();

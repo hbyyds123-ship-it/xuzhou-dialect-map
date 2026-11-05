@@ -360,6 +360,136 @@ function v15() {
         /volumes\.html/.test((aboutYes && aboutYes.openHref) || '')),
       `含 npm=${/npm\s/.test(aboutTxt)}；入口「${aboutYes && aboutYes.openLink}」→ ${aboutYes && aboutYes.openHref}`);
 
+    /* ================= V18 词数上限：卷是"能被走完的规模"，不是数据库 ================= */
+    await go(`http://127.0.0.1:${PORT}/volumes.html`, 1800);
+    const cap = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      function mk(n,name){ const ws=[]; for(let i=0;i<n;i++) ws.push({w:'词'+i});
+        return {format:'xiangyince-volume/1', volume:{name:name, districts:['城关'], words:ws}}; }
+      const before=V.list().length;
+      const r1=V.importJSON(mk(200000,'二十万词'));
+      const a1=V.list().length;
+      const r2=V.importJSON(mk(600,'六百词'));
+      const a2=V.list().length;
+      const r3=V.importJSON(mk(500,'五百词'));
+      const a3=V.list().length;
+      return {before, a1, a2, a3,
+        ok1:!!r1.ok, m1:(r1.errors||[]).map(e=>e.msg),
+        ok2:!!r2.ok, m2:(r2.errors||[]).map(e=>e.msg),
+        ok3:!!r3.ok, w3:r3.ok?r3.stats.words:0};
+    })()`, true);
+    const msgAll = ((cap && cap.m1) || []).concat((cap && cap.m2) || []).join(' ');
+    check('V18', '词数超上限整份拒绝（20 万与 600 都拒、500 通过），文案给数字与出口',
+      cap && !cap.__err &&
+        cap.ok1 === false && cap.a1 === cap.before &&
+        cap.ok2 === false && cap.a2 === cap.before &&
+        cap.ok3 === true && cap.w3 === 500 && cap.a3 === cap.before + 1 &&
+        /200000|200,000/.test(msgAll) && /500/.test(msgAll) && /拆|删/.test(msgAll),
+      `20万: ${cap && cap.ok1} ${JSON.stringify(cap && cap.m1)}；600: ${cap && cap.ok2}；500: ${cap && cap.ok3}/${cap && cap.w3}；list ${cap && cap.before}→${cap && cap.a1}/${cap && cap.a2}/${cap && cap.a3}`);
+
+    /* 同一条上限也要挡在建卷这一侧：否则建出来的卷导不回去（导出 → 导入会被自己拒掉） */
+    const capUI = await ev(`(async()=>{
+      const V=window.XZ.volumes;
+      const set=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event('input',{bubbles:true}));};
+      set('fName','超量卷');
+      const d=document.querySelectorAll('.dname'); if(d[0]) d[0].value='城关';
+      const lines=[]; for(let i=0;i<501;i++) lines.push('词'+i);
+      const ta=document.getElementById('fWords'); ta.value=lines.join('\\n');
+      ta.dispatchEvent(new Event('input',{bubbles:true}));
+      const before=V.list().length;
+      document.getElementById('createBtn').click();
+      await new Promise(r=>setTimeout(r,300));
+      return {before, after:V.list().length, err:(document.getElementById('err')||{}).textContent||'',
+              url:location.pathname};
+    })()`, true);
+    check('V18-ui', '建卷侧用同一条上限（否则建出来的卷导不回去）',
+      capUI && !capUI.__err && capUI.after === capUI.before &&
+        /501/.test(capUI.err) && /500/.test(capUI.err) && /拆/.test(capUI.err),
+      JSON.stringify(capUI));
+
+    /* ================= V19 配额失败路径（注入，不靠"我这儿没报错"） ================= */
+    const quota = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      const orig=localStorage.setItem.bind(localStorage);
+      const doc=V.exportJSON(V.current().id);
+      const before=V.list().length;
+      let r=null, threw='';
+      try{
+        localStorage.setItem=function(){ const e=new Error('quota'); e.name='QuotaExceededError'; throw e; };
+        r=V.importJSON(doc);
+      }catch(e){ threw=e.message||String(e); }
+      finally{ localStorage.setItem=orig; }
+      return {before, after:V.list().length, ok:r&&r.ok, msgs:((r&&r.errors)||[]).map(e=>e.msg), threw};
+    })()`, true);
+    check('V19', '写盘失败（QuotaExceededError）时不假成功：ok=false、有文案、list 不变',
+      quota && !quota.__err && quota.ok === false && !quota.threw &&
+        (quota.after === quota.before) &&
+        /存不下|已满|空间/.test((quota.msgs || []).join(' ')),
+      JSON.stringify(quota));
+
+    /* ================= V20 create / update 也走同一条 false 路径 ================= */
+    const quota2 = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      const orig=localStorage.setItem.bind(localStorage);
+      const cur=V.current();
+      let c='unset', u='unset';
+      try{
+        localStorage.setItem=function(){ const e=new Error('quota'); e.name='QuotaExceededError'; throw e; };
+        c=V.create({title:'乡音册', name:'溢出卷', dialect:'溢出话', mark:'溢',
+          districts:['城关'], words:[{w:'甲'}]});
+        u=V.update(cur.id, {note:'改了但存不下'});
+      } finally { localStorage.setItem=orig; }
+      return {createNull:c===null, updateNull:u===null, cur:{id:cur.id}};
+    })()`, true);
+    check('V20', 'create / update 在写盘失败时返回 null（不是静默成功）',
+      quota2 && !quota2.__err && quota2.createNull === true && quota2.updateNull === true,
+      JSON.stringify(quota2));
+
+    /* ================= V21 片区重名：拒绝或自动加序号，静默收下不算过 ================= */
+    const dupD = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      const doc={format:'xiangyince-volume/1', volume:{name:'重名片区卷', districts:['城关','城关'],
+        words:[{w:'甲'},{w:'乙'}]}};
+      const r=V.importJSON(doc, {activate:false});
+      const vol=r&&r.ok ? V.list().filter(v=>v.name==='重名片区卷')[0] : null;
+      return {ok:!!(r&&r.ok),
+        names: vol?vol.districts.map(d=>d.name):[],
+        notes: (r&&r.notes)||[],
+        msgs: ((r&&r.errors)||[]).map(e=>e.msg)};
+    })()`, true);
+    const dupOK = dupD && (
+      (dupD.ok === false && /片区/.test((dupD.msgs || []).join(''))) ||
+      (dupD.ok === true && new Set(dupD.names).size === dupD.names.length &&
+        /同名/.test((dupD.notes || []).join('')))
+    );
+    check('V21', '片区重名必须被处理：拒绝并说明，或自动加序号并在 notes 里告知',
+      !!(dupD && !dupD.__err && dupOK),
+      JSON.stringify(dupD));
+
+    /* ================= V22 导入不夺走当前工作面 ================= */
+    const act = await ev(`(async()=>{
+      const V=window.XZ.volumes;
+      localStorage.removeItem('xzdt.volumes.v1');
+      const a=V.create({title:'乡音册', name:'甲卷', dialect:'甲话', mark:'甲',
+        districts:['城关'], words:[{w:'甲'},{w:'乙'}]});
+      V.activate(a.id);
+      const before=V.activeId();
+      const doc=V.exportJSON(a.id); doc.volume.name='乙卷';
+      const f=new File([JSON.stringify(doc)],'b.json',{type:'application/json'});
+      const dt=new DataTransfer(); dt.items.add(f);
+      document.getElementById('impDrop').dispatchEvent(new DragEvent('drop',{bubbles:true,dataTransfer:dt}));
+      await new Promise(r=>setTimeout(r,900));
+      const rep=document.getElementById('impReport');
+      const btn=rep?rep.querySelector('[data-act]'):null;
+      return {before, after:V.activeId(), hasBtn:!!btn,
+        actId:btn?btn.getAttribute('data-act'):'',
+        imported: (V.list().filter(v=>v.name==='乙卷')[0]||{}).id || '',
+        text:(rep?rep.innerText:'').replace(/\s+/g,' ').slice(0,90)};
+    })()`, true);
+    check('V22', '从向导导入不切换当前卷，报告里给一个显式的「去看这一卷」入口',
+      act && !act.__err && act.before === act.after && act.hasBtn && act.actId === act.imported,
+      JSON.stringify(act));
+
     console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
   } catch (e) {
     console.error('崩溃：', e && e.stack || e);

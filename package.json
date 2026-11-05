@@ -10,7 +10,8 @@
     "icon": "node portable/make-icon.cjs",
     "refs": "node tools/scan-refs.cjs",
     "new-volume": "node tools/new-volume.cjs",
-    "volume": "node tools/check-volume.cjs"
+    "volume": "node tools/check-volume.cjs",
+    "vol": "node tools/check-volumes.cjs"
   },
   "devDependencies": {
     "playwright": "^1.48.0",

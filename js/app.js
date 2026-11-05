@@ -1116,7 +1116,8 @@
                   (r.bundled ? ' disabled title="随包分发的范本音要改 data/refs.js"' : '') + '>✕</button>' +
                 '</div>';
             }).join('')
-          : '<p class="refs-empty">本卷还没有随包的范本音。请发音人按词条念一遍，把 wav / mp3 拖进这个窗口（或点上面的「导入录音文件…」）。</p>'
+          : '<p class="refs-empty">本卷未带范本音 —— 可导入发音人录音（wav / mp3 拖进来即可）：' +
+              '请发音人按词条念一遍，文件名用词条 id 或词本身。</p>'
         ) + '</div>'
       : '';
 
@@ -1129,7 +1130,10 @@
       '<button class="mc-close" data-close>×</button></div>' +
       '<div class="refs-bar">' +
         '<button class="refs-btn" id="refImport">导入录音文件…</button>' +
-        '<button class="refs-btn plain" id="refToggle">' + (refsOpen ? '收起清单' : '范本音清单') + '</button>' +
+        /* 计数常驻在按钮上：★"本卷 0 条"这件事必须看得见。
+           否则读说明书的人会去界面里找范本音，找不到、也没人告诉他为什么没有。 */
+        '<button class="refs-btn plain" id="refToggle">范本音 ' + refN + ' / ' + WORDS.length +
+          (refsOpen ? ' ▴' : ' ▾') + '</button>' +
         '<span class="refs-tip">wav / mp3 可直接拖进这个窗口；文件名用词条 id（<code>maozi.mp3</code>）或词本身（<code>茅子.mp3</code>）</span>' +
         '<input type="file" id="refFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" multiple hidden>' +
       '</div>' + refListHTML +
@@ -1188,71 +1192,8 @@
     });
     modal.classList.add('on');
   }
-  /* ---------------------- 关于本卷 ----------------------
-     整个项目的立意都在这一张卡里：这不是一个徐州 App，是一卷可以复制的地方志。
-     入口做成"第 1 卷"那个小标签 —— 不明目张胆地占地方，但一眼看得见。
-     不写"更多产品"，写清引擎与卷的边界，因为那才是别人能接手的东西。 */
-  function openAbout() {
-    const V = (window.XZ && window.XZ.volume && window.XZ.volume.get()) || {};
-    /* 空着的三项不要一列"未填"了事 —— 那看起来像半成品。
-       它们空着是有原因的（个人整理、还没请人念、还没拿到审图号），
-       把原因说出来才叫如实，也更像一件有人负责的东西。 */
-    const missing = [
-      ['语料依据', V.survey],
-      ['范本音发音人', V.refsBy],
-      ['边界来源', V.mapSource]
-    ].filter(r => !r[1]).map(r => r[0]);
-    const row = (k, v) => '<div class="about-row"><dt>' + k + '</dt><dd>' +
-      (v ? esc(v) : '<span class="about-miss">—</span>') + '</dd></div>';
-
-    modalCard.innerHTML =
-      '<div class="mc-head"><div><div class="mc-eyebrow">关于</div>' +
-      '<h2 class="mc-title" style="font-size:19px">' + esc(V.title || '乡音册') + ' · 第 ' + (V.no || 1) + ' 卷</h2>' +
-      '</div><button class="mc-close" data-close>×</button></div>' +
-      '<div class="about-body">' +
-        '<p class="about-lead">' + esc(V.name || '') + '是这一卷。</p>' +
-        '<dl class="about-list">' +
-          row('范围', V.scope) +
-          row('语料依据', V.survey) +
-          row('范本音', V.refsBy ? '由 ' + V.refsBy + ' 录制' : '') +
-          row('边界数据', V.mapSource) +
-          row('授权', V.dataLicense ? '词条 ' + V.dataLicense + '；代码 MIT' : '') +
-        '</dl>' +
-        (missing.length
-          ? '<p class="about-todo">' + missing.join(' / ') + ' 这 ' + missing.length + ' 栏空着，不是漏了：' +
-            (missing.indexOf('范本音发音人') >= 0 ? '这一卷还没有一条请人念过的录音，' : '') +
-            '来源要能查，所以在拿到之前宁可空着。补法见 VOLUMES.md。</p>'
-          : '') +
-        /* 卷目：让人一眼看到"这是丛书里的一册"，而不是一个孤零零的作品。
-           第 2 卷起是空位 —— 不编造，也不假装有人在做。 */
-        '<div class="about-vols">' +
-          '<div class="av-row done"><span class="av-no">第 ' + (V.no || 1) + ' 卷</span><b>' + esc(V.name || '') + '</b>' +
-            '<span class="av-st">已成卷</span></div>' +
-          '<div class="av-row"><span class="av-no">第 ' + ((V.no || 1) + 1) + ' 卷</span><b>——</b>' +
-            '<span class="av-st">空位 · 谁的老家谁开</span></div>' +
-          '<div class="av-row more"><span class="av-no">第 ' + ((V.no || 1) + 2) + ' 卷起</span>' +
-            '<b>…</b><span class="av-st">开卷不需要联系作者</span></div>' +
-        '</div>' +
-        '<div class="about-note">' +
-          '<p>这不是一个「' + esc(V.name || '') + ' App」，是<strong>一卷可以复制的地方志</strong>。' +
-          '引擎不动，换掉 <code>data/</code> 那一套（词表、边界、方言点、范本音），' +
-          '同一套代码就是另一座城 —— 录音、学习、传承这三件事在每个方言区都成立。</p>' +
-          '<p class="about-cmd"><code>npm run new-volume -- &lt;卷 id&gt; &lt;地名&gt;</code></p>' +
-          '<p class="about-dim">现在这一卷的 ' + WORDS.length + ' 个词里，' +
-            ((window.XZ.refs && window.XZ.refs.count()) ? '有 ' + window.XZ.refs.count() + ' 个请人念过' :
-              '还没有一个请人念过 —— 学习侧你能听到的仍是普通话合成音') + '。</p>' +
-        '</div>' +
-      '</div>';
-
-    $$('[data-close]', modalCard).forEach(b => b.addEventListener('click', closeModal));
-    modal.classList.add('on');
-  }
-
-  const volTag = $('.vol-tag');
-  if (volTag) {
-    volTag.addEventListener('click', openAbout);
-    volTag.style.cursor = 'pointer';
-  }
+  /* 「关于本卷」不在这里：卡片本体与顶栏入口都在 features/about-vol.js。
+     用户卷时 js/app.js 顶部就 return 了，写在这里的卡片在用户卷里打不开。 */
 
   // 走路由而不是直接开弹窗：这样地址栏反映"正在看图鉴"，浏览器返回键也有意义
   $('#btnBook').addEventListener('click', function () { ROUTER.go('book'); });

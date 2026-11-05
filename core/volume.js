@@ -9,7 +9,8 @@
      <div class="brand-mark"><span data-vol="mark">乡</span></div>
 
    为什么不在 HTML 里写死、也不在构建时替换：卷是运行时概念。
-   同一份部署可以 ?vol= 换卷，也可以直接换 data/volume.js。
+   换卷有两条真实路径：换 data/volume.js（打包时定），或在《开一卷》页里
+   建/切一卷（features/volumes.js，存 localStorage）。
    HTML 里保留一份默认文案，是为了让"没加载 JS 也能看懂这是什么"。
 
    缺字段一律回落到默认值 —— 一卷数据没填全，页面不该白屏。

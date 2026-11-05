@@ -16,6 +16,8 @@
   'use strict';
 
   var KEY = 'xzdt.volumes.v1';
+  var FORMAT = 'xiangyince-volume/1';
+  var MAX_DISTRICTS = 6;
 
   function read() {
     try {
@@ -58,17 +60,28 @@
         return { id: 'd' + (i + 1), name: String(n).trim() };
       }).filter(function (d) { return d.name; }),
       words: [],
+      /* 许可与依据：用户卷**不继承**第 1 卷的 CC BY-SA。
+         留空就是"未声明，仅本机自用"——软件不能替用户声明他没同意过的许可。 */
+      dataLicense: String(input.dataLicense || '').trim(),
+      survey: String(input.survey || '').trim(),
+      refsBy: String(input.refsBy || '').trim(),
       createdAt: new Date().toISOString()
     };
     (input.words || []).forEach(function (w, i) {
       if (!w || !w.w) return;
+      // 词点位置：导入时保留原版式；手填时先给 0，交给 layoutWords 铺
+      var kept = (typeof w.x === 'number' && w.x > 0 && typeof w.y === 'number' && w.y > 0);
+      var dj = (w.district && vol.districts.some(function (d) { return d.id === w.district; }))
+        ? w.district
+        : ((vol.districts[i % (vol.districts.length || 1)] || {}).id || null);
       vol.words.push({
         id: wordId(vol, i),
         w: String(w.w).trim(),
         meaning: String(w.meaning || '').trim(),
         example: String(w.example || '').trim(),
-        district: (vol.districts[i % (vol.districts.length || 1)] || {}).id || null,
-        x: 0, y: 0
+        district: dj,
+        x: kept ? w.x : 0,
+        y: kept ? w.y : 0
       });
     });
     // 词点在片区内均匀铺开，用户随后可以拖
@@ -196,7 +209,13 @@
       V.name = vol.name; V.dialect = vol.dialect; V.mark = vol.mark;
       V.scope = vol.words.length + ' 个词条 · ' + vol.districts.length + ' 个片区';
       V.note = vol.name + '是第 ' + vol.no + ' 卷（你自己建的那一卷）。';
-      V.survey = ''; V.refsBy = ''; V.mapSource = '片区示意：由建卷人填写的片区名生成，不是地理边界';
+      /* 必须显式写这三项 + 许可：
+         V 是从 data/volume.js 复制来的，那里写的是第 1 卷的「词条 CC BY-SA 4.0」。
+         不覆盖就等于软件替用户声明了一个他没同意过的许可。 */
+      V.dataLicense = vol.dataLicense || '';
+      V.survey = vol.survey || '';
+      V.refsBy = vol.refsBy || '';
+      V.mapSource = '片区示意：由建卷人填写的片区名生成，不是地理边界';
     }
     return true;
   }
@@ -207,13 +226,129 @@
     var vol = db.list.filter(function (v) { return v.id === id; })[0] || current();
     if (!vol) return null;
     return {
-      format: 'xiangyince-volume/1',
+      format: FORMAT,
       exportedAt: new Date().toISOString(),
       volume: {
         no: vol.no, title: vol.title, name: vol.name,
         dialect: vol.dialect, mark: vol.mark,
+        /* 来源与许可一起带走：没有它，别人拿到这份卷就不知道能不能再转。 */
+        dataLicense: vol.dataLicense || '',
+        survey: vol.survey || '',
+        refsBy: vol.refsBy || '',
         districts: vol.districts, words: vol.words
       }
+    };
+  }
+
+  /* ---------------------- 导入 ----------------------
+     校验在前、写入在后：任何一条不合格就整份拒绝，一条都不写。
+     半份卷进了库，比拒绝更难查（图上少一块、题少几道，还不报错）。
+
+     opts.activate === false 时不切换当前卷（默认切过去，导入完就想看见它）。 */
+  function importJSON(doc, opts) {
+    var errs = [];
+    function err(code, msg) { errs.push({ code: code, msg: msg }); }
+
+    if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+      return { ok: false, errors: [{ code: 'format', msg: '文件内容不是一个对象：卷文件应当是一个带 format 字段的 JSON 对象' }] };
+    }
+    if (doc.format !== FORMAT) {
+      return {
+        ok: false,
+        errors: [{ code: 'format', msg: 'format 是「' + String(doc.format || '空') + '」，不是「' + FORMAT +
+          '」——这不是本程序导出的卷文件' }]
+      };
+    }
+    var v = doc.volume;
+    if (!v || typeof v !== 'object' || Array.isArray(v)) {
+      return { ok: false, errors: [{ code: 'volume', msg: '缺少 volume 对象：卷名、片区、词表都该在它里面' }] };
+    }
+
+    var name = String(v.name || '').trim();
+    if (!name) err('name', '缺少地名：这一卷叫什么，不能为空');
+
+    var ds = v.districts;
+    var dNames = [];
+    if (!Array.isArray(ds)) {
+      err('districts', 'districts 不是数组：片区应当是一串名字');
+    } else if (!ds.length) {
+      err('districts', '片区 0 个：至少写一个片区，分幅图才有格子');
+    } else if (ds.length > MAX_DISTRICTS) {
+      err('districts', '片区 ' + ds.length + ' 个：最多 ' + MAX_DISTRICTS + ' 个，再多图就挤了');
+    } else {
+      dNames = ds.map(function (d) { return String((d && d.name) || d || '').trim(); });
+      if (dNames.some(function (n) { return !n; })) err('districts', '有片区名是空的：每个片区都得有名字');
+    }
+
+    var ws = v.words;
+    if (!Array.isArray(ws)) {
+      err('words', 'words 不是数组：词表应当是一串 {w, meaning, example}');
+    } else if (!ws.length) {
+      err('words', '词表是空的：至少一条词才算一卷');
+    } else {
+      var seen = {}, dups = [], empties = [];
+      ws.forEach(function (w, i) {
+        var t = (w && typeof w === 'object') ? String(w.w == null ? '' : w.w).trim() : '';
+        if (!t) { empties.push(i + 1); return; }
+        if (seen[t]) { if (dups.indexOf(t) < 0) dups.push(t); } else { seen[t] = 1; }
+      });
+      if (empties.length) {
+        err('word-empty', '有 ' + empties.length + ' 个词是空的（第 ' + empties.slice(0, 5).join('、') +
+          ' 条没有字）：每行都要有词');
+      }
+      if (dups.length) {
+        err('word-dup', '词重名：「' + dups.slice(0, 3).join('」「') + '」' +
+          (dups.length > 3 ? ' 等 ' + dups.length + ' 个' : '') +
+          ' —— 重名的词在图上会叠成一个点，也分不清录的是哪一条');
+      }
+    }
+
+    if (errs.length) return { ok: false, errors: errs };
+
+    // 同名不覆盖：另存为新卷，并把"卷号怎么来的"说清楚
+    var db = read();
+    var prevActive = db.active;
+    var sameName = db.list.filter(function (x) { return x.name === name; })[0] || null;
+
+    // 源卷的片区 id → 新卷的片区 id（按顺序一一对应）
+    var map = {};
+    ds.forEach(function (d, i) { map[(d && d.id) || ('d' + (i + 1))] = 'd' + (i + 1); });
+
+    var vol = create({
+      title: v.title || '乡音册',
+      name: name,
+      dialect: v.dialect || (name + '话'),
+      mark: v.mark || name.slice(0, 1),
+      districts: dNames,
+      dataLicense: v.dataLicense || '',
+      survey: v.survey || '',
+      refsBy: v.refsBy || '',
+      words: ws.map(function (w) {
+        return {
+          w: w.w, meaning: w.meaning, example: w.example,
+          district: map[w.district] || null,
+          x: w.x, y: w.y
+        };
+      })
+    });
+    if (!vol) {
+      return { ok: false, errors: [{ code: 'quota', msg: '存不下了：浏览器本地存储已满，先删掉一卷再导入' }] };
+    }
+
+    if (opts && opts.activate === false) activate(prevActive);
+
+    var notes = [
+      '卷号按「现有最大卷号 + 1」算，本次是第 ' + vol.no + ' 卷（第 1 卷是样板房徐州，不占这个号）',
+      '词的 id 按卷号重新分配（' + vol.words[0].id + '…）：id 带卷号前缀，否则两个卷的 w1 会在录音索引里撞车',
+      sameName
+        ? '已有同名的「' + name + '」（第 ' + sameName.no + ' 卷），没有覆盖它 —— 这一卷另存为第 ' + vol.no + ' 卷'
+        : '这是本机第一次导入「' + name + '」'
+    ];
+    if (!(opts && opts.activate === false)) notes.push('已切到这一卷');
+
+    return {
+      ok: true, volume: vol, notes: notes,
+      stats: { no: vol.no, words: vol.words.length, districts: vol.districts.length }
     };
   }
 
@@ -233,6 +368,8 @@
     deactivate: deactivate,
     apply: apply,
     layoutWords: layoutWords,
-    exportJSON: exportJSON
+    exportJSON: exportJSON,
+    importJSON: importJSON,
+    format: FORMAT
   };
 })();

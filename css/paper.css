@@ -618,3 +618,11 @@ body::after {
 }
 .vol-new:hover { color: var(--zhu); border-color: var(--zhu); }
 @media (max-width: 720px) { .vol-new { display: none; } }
+
+/* 关于本卷：开一卷的入口（不再对用户喊命令行） */
+.about-open {
+  display: inline-block; font-size: 12.5px; letter-spacing: .04em;
+  color: var(--zhu); text-decoration: none;
+  border-bottom: 1px solid var(--zhu); padding-bottom: 1px;
+}
+.about-open:hover { background: var(--zhu); color: var(--paper); }

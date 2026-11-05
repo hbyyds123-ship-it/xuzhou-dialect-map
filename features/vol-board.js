@@ -47,6 +47,7 @@
         '<button id="vbQuiz"' + (vol.words.length < 4 ? ' disabled title="至少 4 个词才能出四选一"' : '') + '>测一测</button>' +
         '<button id="vbExport">导出这一卷</button>' +
         '<a class="vb-link" href="volumes.html">再开一卷</a>' +
+        '<button id="vbAbout" class="vb-quiet">关于本卷</button>' +
         '<button id="vbBack" class="vb-quiet">切回徐州</button>' +
       '</div>' +
     '</div>' +
@@ -183,6 +184,9 @@
     a.download = name;
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  });
+  $('#vbAbout').addEventListener('click', function () {
+    if (window.XZ && window.XZ.about) window.XZ.about.open();
   });
   $('#vbBack').addEventListener('click', function () {
     V.deactivate();

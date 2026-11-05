@@ -137,8 +137,12 @@ async function main() {
     // 「开一卷」是这一版的主打：缺了它，用户就只能用徐州（样板房）
     const volPage = await get(base + 'volumes.html');
     checks.push(['开一卷', volPage.code === 200 && volPage.body.includes('给你的家乡开一卷')]);
+    // 导入的界面也在这一页：卷能生不能搬，等于只能活在这台浏览器里
+    checks.push(['卷的导入', volPage.body.includes('导入已有的一卷')]);
     const volJs = await get(base + 'features/volumes.js');
-    checks.push(['卷库', volJs.code === 200 && volJs.body.includes('xzdt.volumes.v1')]);
+    checks.push(['卷库', volJs.code === 200 && volJs.body.includes('xzdt.volumes.v1') && volJs.body.includes('importJSON')]);
+    const aboutJs = await get(base + 'features/about-vol.js');
+    checks.push(['关于本卷', aboutJs.code === 200 && aboutJs.body.includes('给你的家乡开一卷')]);
     const three = await get(base + 'vendor/three.min.js');
     checks.push(['three.js', three.code === 200 && three.body.length > 100000]);
     checks.forEach(([n, ok]) => console.log((ok ? '✓ ' : '✗ ') + n));

@@ -50,6 +50,10 @@ jobs:
       - run: node tools/cross-browser.cjs
         working-directory: recorder
 
+      # 卷制回归（导入往返 / 坏输入 / 许可不继承 / 关于本卷 / 范本音计数）
+      # 它要开浏览器，所以放在这个已经有 Chrome 的 job 里，而不是静态那个
+      - run: node tools/check-volumes.cjs
+
       - name: 留一份运行日志与结果
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,3 +64,4 @@ jobs:
             recorder/tools/cross-browser-result.json
             recorder/tools/cross-browser-*.log
           if-no-files-found: ignore
+

@@ -44,12 +44,21 @@
     for (var i = 0; i < db.list.length; i++) if (db.list[i].id === db.active) return db.list[i];
     return null;
   }
+  /* 没有激活卷 = 样板房（第 1 卷徐州）。
+     这是**有意**的回落，不是"数据丢了"：删掉当前卷后 activeId 变 null，
+     core/volume.js 用 data/volume.js 的默认值把界面兜住，用户看到的是徐州而不是白屏。 */
   function isCustom() { return !!current(); }
 
   /** 词 id 带卷号前缀：u2w1。否则两个卷的 w1 会在录音索引里撞车 */
   function wordId(vol, i) { return 'u' + vol.no + 'w' + (i + 1); }
 
   function create(input) {
+    /* 边界建在数据层，不建在页面上。
+       只守建卷页与导入两个入口，下一个入口（批量导入、从存档恢复、脚本）就会绕过；
+       而绕过后这卷导得出去、导不回来 —— 因为 importJSON 会拒它。 */
+    var inWords = (input && input.words) || [];
+    if (inWords.length > MAX_WORDS) return null;
+
     var db = read();
     // 第 1 卷永远是样板房（徐州），它不在 list 里，所以新卷从 2 起
     var no = db.list.reduce(function (m, v) { return Math.max(m, v.no || 0); }, 1) + 1;
@@ -152,6 +161,9 @@
   }
 
   function update(id, patch) {
+    // 同一条边界：改词表也要守，否则 create 守住了、update 又能把它撑爆
+    if (patch && Array.isArray(patch.words) && patch.words.length > MAX_WORDS) return null;
+
     var db = read();
     for (var i = 0; i < db.list.length; i++) {
       if (db.list[i].id !== id) continue;

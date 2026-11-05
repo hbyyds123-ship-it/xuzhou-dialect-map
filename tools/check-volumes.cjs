@@ -490,6 +490,28 @@ function v15() {
       act && !act.__err && act.before === act.after && act.hasBtn && act.actId === act.imported,
       JSON.stringify(act));
 
+    /* ================= V23 数据层也守上限（A1） ================= */
+    const capApi = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      const mk=(n,name)=>({title:'乡音册', name:name, dialect:'x话', mark:'x',
+        districts:['城关'], words:Array.from({length:n},(_,i)=>({w:'词'+i}))});
+      const before=V.list().length;
+      const a=V.create(mk(600,'六百卷'));
+      const after1=V.list().length;
+      const b=V.create(mk(500,'五百卷'));
+      const after2=V.list().length;
+      const cur=V.current();
+      const beforeW=cur?cur.words.length:0;
+      const u=V.update(cur.id, {words:Array.from({length:501},(_,i)=>({w:'新'+i}))});
+      const afterW=(V.current()||{words:[]}).words.length;
+      return {before, aNull:a===null, after1, bOK:!!b, after2, uNull:u===null, beforeW, afterW};
+    })()`, true);
+    check('V23', '数据层也守上限：create 600 拒绝、500 通过、update 越界拒绝',
+      capApi && !capApi.__err && capApi.aNull === true && capApi.after1 === capApi.before &&
+        capApi.bOK === true && capApi.after2 === capApi.before + 1 &&
+        capApi.uNull === true && capApi.afterW === capApi.beforeW,
+      JSON.stringify(capApi));
+
     console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
   } catch (e) {
     console.error('崩溃：', e && e.stack || e);

@@ -1,0 +1,129 @@
+/* ==========================================================
+   vol-board.css — 用户自建卷的分幅纸图
+   ----------------------------------------------------------
+   只在 body.vol-custom 下生效：这时主地图（3D）不跑，
+   页面上只剩顶栏 + 这张分幅图。
+   视觉沿用纸本那套：纸、墨线、朱只给"已经录过"。
+   ========================================================== */
+
+/* 地图相关的元素全部让位：它们没被初始化，留着就是死按钮 */
+body.vol-custom #scene,
+body.vol-custom .legend,
+body.vol-custom .pin-layer,
+body.vol-custom .toolbar,
+body.vol-custom .district-bar,
+body.vol-custom #hint,
+body.vol-custom .searchbox,
+body.vol-custom .values,
+body.vol-custom .panel { display: none !important; }
+
+body.vol-custom .topbar { position: relative !important; top: auto !important; left: auto !important; right: auto !important; }
+body.vol-custom { overflow: auto !important; }
+
+.vol-board {
+  max-width: 1120px; margin: 0 auto; padding: 26px 32px 72px;
+}
+
+/* ---------- 卷头 ---------- */
+.vb-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; flex-wrap: wrap; border-bottom: 2px solid var(--ink); padding-bottom: 14px; }
+.vb-eyebrow { font-family: var(--mono); font-size: 10.5px; letter-spacing: .22em; color: var(--ink-2); }
+.vol-board h1 { margin: 6px 0 0; font-size: 32px; letter-spacing: .12em; font-weight: 700; color: var(--ink); }
+.vb-sub { margin: 6px 0 0; font-size: 12px; color: var(--ink-2); letter-spacing: .06em; }
+.vb-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vb-acts button {
+  font-family: var(--serif); font-size: 12.5px; letter-spacing: .04em;
+  padding: 7px 14px; border: 1px solid var(--rule-strong);
+  background: transparent; color: var(--ink); cursor: pointer;
+}
+.vb-acts button:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+.vb-acts button.primary { background: var(--zhu); border-color: var(--zhu); color: var(--paper); }
+.vb-acts button.primary:hover { background: #8E3223; border-color: #8E3223; }
+.vb-acts button:disabled { opacity: .4; cursor: not-allowed; }
+.vb-acts .vb-quiet { color: var(--ink-2); border-color: var(--rule); }
+.vb-link { font-size: 12px; color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--rule-strong); padding-bottom: 1px; }
+.vb-link:hover { color: var(--zhu); border-color: var(--zhu); }
+
+/* ---------- 分幅图 ---------- */
+.vb-map {
+  position: relative; margin-top: 22px;
+  height: clamp(330px, 50vh, 540px);
+  display: grid; gap: 0;
+  border: 2px solid var(--ink);
+  background: var(--paper-3);
+  background-image:
+    linear-gradient(to right, rgba(27, 26, 23, .06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(27, 26, 23, .06) 1px, transparent 1px);
+  background-size: 26px 26px;
+  touch-action: none;
+  overflow: hidden;
+}
+/* 片区数决定分幅：和方志里的"分幅图"同一个意思 */
+.vb-map[data-n="1"] { grid-template-columns: 1fr; }
+.vb-map[data-n="2"] { grid-template-columns: 1fr 1fr; }
+.vb-map[data-n="3"] { grid-template-columns: repeat(3, 1fr); }
+.vb-map[data-n="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.vb-map[data-n="5"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+.vb-map[data-n="6"] { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+
+.vb-region {
+  position: relative; border-right: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule-strong);
+  overflow: hidden;
+}
+.vb-region:last-child { border-right: none; }
+.vb-map[data-n="1"] .vb-region { border: none; }
+.vb-map[data-n="2"] .vb-region:last-child,
+.vb-map[data-n="3"] .vb-region:last-child { border-right: 1px solid var(--rule-strong); }
+
+.vb-rno { position: absolute; left: 8px; top: 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; color: var(--ink-2); }
+/* 片区名压在下缘居中：地图上的地名就该长在图上，而不是挤在边界线旁边 */
+.vb-rname {
+  position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+  font-family: var(--serif); font-size: 12px; letter-spacing: .3em;
+  color: rgba(27, 26, 23, .42);
+  pointer-events: none; user-select: none; white-space: nowrap;
+}
+.vb-rname::before { content: ""; display: inline-block; width: 14px; height: 1px; background: rgba(27, 26, 23, .35); vertical-align: middle; margin-right: 8px; }
+.vb-rname::after { content: ""; display: inline-block; width: 14px; height: 1px; background: rgba(27, 26, 23, .35); vertical-align: middle; margin-left: 8px; }
+
+/* ---------- 词点 ---------- */
+.vb-pin {
+  position: absolute; transform: translate(-50%, -50%);
+  display: flex; align-items: center; gap: 5px;
+  padding: 2px 4px; border: none; background: transparent; cursor: grab;
+  font-family: var(--serif); font-size: 12px; color: var(--ink);
+  touch-action: none;
+}
+.vb-pin i {
+  width: 9px; height: 9px; border-radius: 50% !important;
+  border: 1.5px solid var(--ink); background: var(--paper-3);
+  flex: none;
+}
+.vb-pin b { font-weight: 400; white-space: nowrap; letter-spacing: .04em;
+  background: rgba(251, 247, 238, .86); padding: 0 2px; }
+.vb-pin.has i { background: var(--zhu); border-color: var(--zhu); }
+.vb-pin.has b { color: var(--zhu); }
+.vb-pin.ref i { border-color: var(--dian); }
+.vb-pin.ref b { color: var(--dian); }
+.vb-pin:hover i { transform: scale(1.35); }
+.vb-pin.drag { cursor: grabbing; z-index: 9; }
+.vb-pin.drag b { background: var(--ink); color: var(--paper); }
+
+.vb-tip { margin: 10px 0 0; font-size: 11px; color: var(--ink-2); letter-spacing: .04em; }
+
+/* ---------- 词条卡 ---------- */
+.vb-card { padding-top: 4px; }
+.vb-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.vb-row dt { font-size: 11px; letter-spacing: .1em; color: var(--ink-2); }
+.vb-row dd { margin: 0; font-size: 13px; color: var(--ink); line-height: 1.8; }
+.vb-miss { color: var(--ink-2); font-size: 12px; }
+.vb-acts2 { margin-top: 14px; }
+.vb-acts2 .say-go { font-size: 12.5px; }
+
+/* 窄屏：分幅保持 2 列上限，名字不竖排 */
+@media (max-width: 760px) {
+  .vol-board { padding: 18px 16px 60px; }
+  .vol-board h1 { font-size: 26px; }
+  .vb-map { height: 52vh; }
+  .vb-map[data-n="3"], .vb-map[data-n="5"], .vb-map[data-n="6"] { grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); }
+  .vb-rname { letter-spacing: .16em; font-size: 11px; }
+}

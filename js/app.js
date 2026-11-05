@@ -5,6 +5,14 @@
 (function () {
   'use strict';
 
+  /* 用户自建卷没有地理数据（没有边界、没有经纬度），3D 地图跑不起来。
+     与其拿空 districts 去建场景然后抛错，不如让出位置 ——
+     分幅图由 features/vol-board.js 渲染，那是"没有边界时"的另一种精度。 */
+  if (window.XZ && window.XZ.volumes && window.XZ.volumes.isCustom()) {
+    window.__VOL_CUSTOM__ = true;
+    return;
+  }
+
   /* ---------------------- 常量 ---------------------- */
   const DEPTH = 5.2;
   const SCALE = 55;

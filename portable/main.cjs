@@ -134,6 +134,11 @@ async function main() {
     checks.push(['范本音清单', refsData.code === 200 && refsData.body.includes('window.REFS')]);
     const refsJs = await get(base + 'features/refs.js');
     checks.push(['范本音模块', refsJs.code === 200 && refsJs.body.includes('xz-dialect-refs')]);
+    // 「开一卷」是这一版的主打：缺了它，用户就只能用徐州（样板房）
+    const volPage = await get(base + 'volumes.html');
+    checks.push(['开一卷', volPage.code === 200 && volPage.body.includes('给你的家乡开一卷')]);
+    const volJs = await get(base + 'features/volumes.js');
+    checks.push(['卷库', volJs.code === 200 && volJs.body.includes('xzdt.volumes.v1')]);
     const three = await get(base + 'vendor/three.min.js');
     checks.push(['three.js', three.code === 200 && three.body.length > 100000]);
     checks.forEach(([n, ok]) => console.log((ok ? '✓ ' : '✗ ') + n));

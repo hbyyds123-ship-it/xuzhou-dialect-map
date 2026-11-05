@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>开一卷 · 乡音册</title>
+<style>
+  :root{
+    --paper:#F3EDE1; --paper2:#E7DFCE; --paper3:#FBF7EE;
+    --ink:#1B1A17; --ink2:#6B655B; --zhu:#A63B2A; --dian:#2C4650;
+    --rule:rgba(27,26,23,.18); --ruleS:rgba(27,26,23,.45);
+    --serif:"Songti SC","SimSun","STSong","Noto Serif SC",serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;border-radius:0}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.75 var(--serif)}
+  body{max-width:880px;margin:0 auto;padding:38px 32px 80px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:12px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink2)}
+  h1{margin:6px 0 0;font-size:28px;letter-spacing:.1em}
+  .back{font-size:12px;color:var(--zhu);text-decoration:none;border-bottom:1px dotted var(--zhu)}
+  .lede{margin:14px 0 0;font-size:13px;color:var(--ink2);line-height:1.95}
+
+  section{margin-top:30px;border-top:1px solid var(--ink);padding-top:14px}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .sec-h b{font-size:15px;letter-spacing:.12em;font-weight:700}
+  .sec-h span{font-size:11.5px;color:var(--ink2)}
+  .no{font-family:var(--mono);font-size:11px;color:var(--ink2);letter-spacing:.1em}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  label{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2);margin-bottom:5px}
+  input,textarea{width:100%;padding:8px 2px;font:inherit;font-size:14px;color:var(--ink);
+    background:transparent;border:1px solid var(--rule);border-bottom:1px solid var(--ruleS)}
+  input:focus,textarea:focus{outline:none;border-bottom-color:var(--zhu)}
+  textarea{min-height:150px;resize:vertical;font-family:var(--mono);font-size:12.5px;line-height:1.9}
+  .hint{font-size:11px;color:var(--ink2);margin:6px 0 0;line-height:1.8}
+  .hint code{font-family:var(--mono);background:var(--paper2);padding:1px 4px}
+
+  .dists{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .dist-row{display:flex;gap:6px;align-items:center}
+  .dist-row .idx{font-family:var(--mono);font-size:10.5px;color:var(--ink2);width:16px}
+
+  .acts{display:flex;gap:12px;align-items:center;margin-top:26px;flex-wrap:wrap}
+  button{font:inherit;font-size:13.5px;padding:9px 18px;border:1px solid var(--ruleS);
+    background:transparent;color:var(--ink);cursor:pointer;letter-spacing:.04em}
+  button:hover{background:var(--paper2)}
+  button.primary{background:var(--zhu);border-color:var(--zhu);color:var(--paper)}
+  button.primary:hover{background:#8E3223;border-color:#8E3223}
+  button.ghost{font-size:12px;padding:6px 12px;color:var(--ink2)}
+  .err{color:var(--zhu);font-size:12.5px;min-height:20px}
+
+  .existing{margin-top:34px;border-top:2px solid var(--ink);padding-top:14px}
+  .ex-row{display:grid;grid-template-columns:56px 1fr 92px auto;gap:10px;align-items:center;
+    padding:8px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+  .ex-row .n{font-family:var(--mono);font-size:10.5px;color:var(--ink2)}
+  .ex-row b{font-weight:400;font-size:14px}
+  .ex-row .meta{font-size:11px;color:var(--ink2)}
+  .ex-row.cur b{color:var(--zhu)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">乡音册 · 开一卷 / NEW VOLUME</div>
+    <h1>给你的家乡开一卷</h1>
+  </div>
+  <a class="back" href="index.html">← 回《乡音册》</a>
+</header>
+
+<p class="lede">
+  徐州是第 1 卷，它有一张真的 3D 地形，因为有人描过边界。<br>
+  你不用描边界 —— 写下你家乡的几个片区名，程序就会生成一张分幅图，把词钉在上面。<br>
+  词、录音、学习、导出，全都立刻可用。
+</p>
+
+<section>
+  <div class="sec-h"><span class="no">01</span><b>这一卷叫什么</b><span>会显示在顶栏和导出的存档上</span></div>
+  <div class="grid">
+    <div>
+      <label for="fName">地名</label>
+      <input id="fName" placeholder="例：宿迁 / 邳州 / 我们镇" maxlength="12">
+    </div>
+    <div>
+      <label for="fDialect">方言名</label>
+      <input id="fDialect" placeholder="留空则自动填「<地名>话」" maxlength="12">
+    </div>
+    <div>
+      <label for="fMark">印章字（一个字）</label>
+      <input id="fMark" placeholder="留空取地名首字" maxlength="1">
+    </div>
+  </div>
+  <p class="hint">卷号自动排：现在会是第 <b id="nextNo">2</b> 卷。</p>
+</section>
+
+<section>
+  <div class="sec-h"><span class="no">02</span><b>分几个片区</b><span>3–6 个 · 你家乡的乡镇/街道叫法</span></div>
+  <div class="dists" id="dists">
+    <div class="dist-row"><span class="idx">01</span><input class="dname" placeholder="城关" maxlength="10"></div>
+    <div class="dist-row"><span class="idx">02</span><input class="dname" placeholder="东乡" maxlength="10"></div>
+    <div class="dist-row"><span class="idx">03</span><input class="dname" placeholder="西乡" maxlength="10"></div>
+  </div>
+  <div class="acts" style="margin-top:12px">
+    <button class="ghost" id="addDist">＋ 加一个片区</button>
+    <span class="hint" id="distHint">至少要填 1 个；片区只用来分幅，不是地理边界。</span>
+  </div>
+</section>
+
+<section>
+  <div class="sec-h"><span class="no">03</span><b>词表</b><span>一行一个词 · 用 | 或逗号分隔</span></div>
+  <textarea id="fWords" spellcheck="false" placeholder="茅子 | 厕所 | 问一声茅子在哪儿
+洋柿子 | 西红柿 | 这洋柿子多少钱一斤
+管 | 行、可以 | 这事儿管不？"></textarea>
+  <p class="hint">格式：<code>词 | 释义 | 例句</code>，后两列可以省。已识别 <b id="wordCount">0</b> 个词。</p>
+</section>
+
+<div class="acts">
+  <button class="primary" id="createBtn">建这一卷，进去看看</button>
+  <span class="err" id="err"></span>
+</div>
+
+<div class="existing" id="existing" hidden>
+  <div class="sec-h" style="margin-bottom:8px"><b>已有的卷</b><span>切过去会替换主界面的那一卷</span></div>
+  <div id="exList"></div>
+</div>
+
+<script src="features/volumes.js"></script>
+<script>
+(function () {
+  'use strict';
+  var V = window.XZ.volumes;
+  var $ = function (s) { return document.querySelector(s); };
+
+  var nextNo = (V.list().reduce(function (m, v) { return Math.max(m, v.no || 0); }, 1)) + 1;
+  $('#nextNo').textContent = nextNo;
+
+  function parseWords(text) {
+    return String(text || '').split(/\r?\n/).map(function (l) { return l.trim(); })
+      .filter(Boolean).map(function (line) {
+        var p = line.split(/\s*[|\t]\s*|\s*[,，]\s*/);
+        return { w: (p[0] || '').trim(), meaning: (p[1] || '').trim(), example: (p[2] || '').trim() };
+      }).filter(function (w) { return w.w; });
+  }
+
+  function refreshCount() {
+    $('#wordCount').textContent = parseWords($('#fWords').value).length;
+  }
+  $('#fWords').addEventListener('input', refreshCount);
+  refreshCount();
+
+  // 地名 → 方言名 / 印章字 自动填
+  $('#fName').addEventListener('input', function () {
+    var n = this.value.trim();
+    if (!$('#fDialect').value.trim()) $('#fDialect').placeholder = n ? n + '话' : '留空则自动填「<地名>话」';
+    if (!$('#fMark').value.trim()) $('#fMark').placeholder = n ? n.slice(0, 1) : '留空取地名首字';
+  });
+
+  $('#addDist').addEventListener('click', function () {
+    var rows = document.querySelectorAll('.dname');
+    if (rows.length >= 6) { $('#distHint').textContent = '最多 6 个片区；再多图就挤了。'; return; }
+    var i = rows.length;
+    var d = document.createElement('div');
+    d.className = 'dist-row';
+    d.innerHTML = '<span class="idx">' + (i + 1 < 10 ? '0' : '') + (i + 1) + '</span>' +
+      '<input class="dname" placeholder="片区名" maxlength="10">';
+    $('#dists').appendChild(d);
+    d.querySelector('input').focus();
+  });
+
+  $('#createBtn').addEventListener('click', function () {
+    var name = $('#fName').value.trim();
+    var words = parseWords($('#fWords').value);
+    var districts = Array.prototype.map.call(document.querySelectorAll('.dname'), function (i) {
+      return i.value.trim();
+    }).filter(Boolean);
+    var err = $('#err');
+
+    if (!name) { err.textContent = '先写下地名 —— 这一卷叫什么是它的身份。'; $('#fName').focus(); return; }
+    if (!districts.length) { err.textContent = '至少填一个片区，图才有分幅。'; return; }
+    if (!words.length) { err.textContent = '词表是空的。一行一个词，最少一条也算开卷。'; $('#fWords').focus(); return; }
+
+    var vol = V.create({
+      title: '乡音册',
+      name: name,
+      dialect: $('#fDialect').value.trim() || (name + '话'),
+      mark: $('#fMark').value.trim() || name.slice(0, 1),
+      districts: districts,
+      words: words
+    });
+
+    if (!vol) { err.textContent = '存不下了：浏览器本地存储已满。先删掉一卷再试。'; return; }
+    location.href = 'index.html';
+  });
+
+  // 已有的卷
+  var all = V.list();
+  if (all.length) {
+    $('#existing').hidden = false;
+    var cur = V.activeId();
+    $('#exList').innerHTML = all.map(function (v) {
+      return '<div class="ex-row' + (v.id === cur ? ' cur' : '') + '">' +
+        '<span class="n">第 ' + v.no + ' 卷</span>' +
+        '<b>' + esc(v.name) + '</b>' +
+        '<span class="meta">' + v.words.length + ' 词 · ' + v.districts.length + ' 片区</span>' +
+        '<span>' +
+          '<button class="ghost" data-act="' + esc(v.id) + '">切到这一卷</button> ' +
+          '<button class="ghost" data-del="' + esc(v.id) + '">删</button>' +
+        '</span></div>';
+    }).join('');
+    $('#exList').addEventListener('click', function (e) {
+      var act = e.target.getAttribute && e.target.getAttribute('data-act');
+      var del = e.target.getAttribute && e.target.getAttribute('data-del');
+      if (act) { V.activate(act); location.href = 'index.html'; }
+      if (del) {
+        if (!confirm('删掉这一卷？词和它的词条都会消失（录音还在浏览器里，但不会再被认出）。')) return;
+        V.remove(del); location.reload();
+      }
+    });
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) {
+      return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c];
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -608,3 +608,13 @@ body::after {
 .av-row.done .av-st { color: var(--zhu); }
 .av-tip { margin: 0 0 16px; font-size: 11.5px; line-height: 1.8; color: var(--ink-2); }
 .av-tip code { font-family: var(--mono); font-size: 10.5px; background: var(--paper-2); padding: 1px 4px; }
+
+/* 顶栏的「＋ 开一卷」：让人知道这一卷是能复制的 */
+.vol-new {
+  display: inline-block; margin-left: 6px; vertical-align: middle;
+  font-size: 10.5px; letter-spacing: .08em; color: var(--ink-2);
+  text-decoration: none; border-bottom: 1px dotted var(--rule-strong);
+  padding-bottom: 1px;
+}
+.vol-new:hover { color: var(--zhu); border-color: var(--zhu); }
+@media (max-width: 720px) { .vol-new { display: none; } }

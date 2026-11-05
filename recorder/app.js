@@ -57,7 +57,7 @@
   const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
   const P = window.PROMPTS || [];
 
-  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: '词表题 · 来自《' + ((window.VOLUME && VOLUME.title) || '乡音册') + '》词表', free: '自定 · 你自己想录的' };
+  const BUCKET_NAME = { new: '新事物 · 长辈没有的词', old: '老器物 · 正在消失的词', home: '家词 · 只有你家这么说', sent: '句子 · 录语序与语气', atlas: (window.__VOL_CUSTOM__ ? '本卷词表 · 你自己录的词' : '词表题 · 来自《' + ((window.VOLUME && VOLUME.title) || '乡音册') + '》词表'), free: '自定 · 你自己想录的' };
   /** 填补策略三分类：借音 / 意译 / 旧词延伸（导出后要能按这三类统计） */
   const STRATEGY = ['借音', '意译', '旧词延伸', '其他'];
   /** 判定人：策略归类必须标明是谁判的，记录者自评不当证据 */

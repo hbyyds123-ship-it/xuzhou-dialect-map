@@ -11,7 +11,8 @@
     "refs": "node tools/scan-refs.cjs",
     "new-volume": "node tools/new-volume.cjs",
     "volume": "node tools/check-volume.cjs",
-    "vol": "node tools/check-volumes.cjs"
+    "vol": "node tools/check-volumes.cjs",
+    "demo": "node recorder/tools/demo-check.cjs"
   },
   "devDependencies": {
     "playwright": "^1.48.0",

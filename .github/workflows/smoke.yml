@@ -50,6 +50,10 @@ jobs:
       - run: node tools/cross-browser.cjs
         working-directory: recorder
 
+      # 演示包：换机器演示时录音能不能带走（真录一条 → 导出 → 清空 → 导入 → 地图能播）
+      - run: node tools/demo-check.cjs
+        working-directory: recorder
+
       # 卷制回归（导入往返 / 坏输入 / 许可不继承 / 关于本卷 / 范本音计数）
       # 它要开浏览器，所以放在这个已经有 Chrome 的 job 里，而不是静态那个
       - run: node tools/check-volumes.cjs

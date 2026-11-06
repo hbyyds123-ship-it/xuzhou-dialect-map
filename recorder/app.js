@@ -877,6 +877,31 @@ function encodeWavBase64(samples, sr) {
     });
     $('#exportJson').addEventListener('click', exportJson);
     $('#exportHtml').addEventListener('click', () => exportHtml().catch((e) => banner('导出失败：' + (e && e.message))));
+
+    /* 演示包：换电脑/换浏览器演示时，把浏览器里的录音带过去 */
+    $('#demoExport').addEventListener('click', async () => {
+      try {
+        const doc = await exportDemo();
+        if (!doc.clips.length) { banner('还没有录音可打包。先录一条，或者这本书本来就还没录。'); return; }
+        download(demoFileName(), JSON.stringify(doc));
+        banner('已导出演示包：' + doc.clips.length + ' 条录音（' + doc.volumeName + '）。在演示机上用「导入演示包」还原。');
+      } catch (e) { banner('导出演示包失败：' + ((e && e.message) || '未知原因')); }
+    });
+    $('#demoImport').addEventListener('click', () => $('#demoFile').click());
+    $('#demoFile').addEventListener('change', async function () {
+      const f = this.files && this.files[0];
+      this.value = '';
+      if (!f) return;
+      let doc = null;
+      try { doc = JSON.parse(await f.text()); }
+      catch (e) { banner('这个文件不是合法的 JSON：' + e.message); return; }
+      const r = await importDemo(doc);
+      if (!r.ok) { banner('导入失败：' + (r.errors || []).map((x) => x.msg).join('；')); return; }
+      const tail = r.unmatched
+        ? '；有 ' + r.unmatched + ' 条的词在本题库里没找到（' + r.missing.join('、') + '）—— 声音还留着，但不会出现在地图的词条里'
+        : '';
+      banner('已导入 ' + r.count + ' 条录音（来自' + (r.volumeName || '徐州') + '）' + tail + '。');
+    });
     $('#quizBtn').addEventListener('click', () => Quiz.start());
     $('#quizPlay').addEventListener('click', () => Quiz.play());
     $('#quizNext').addEventListener('click', () => Quiz.next());
@@ -1142,12 +1167,113 @@ function encodeWavBase64(samples, sr) {
   /* ---------------- I11：稳定测试入口 ----------------
      夹具此后只调函数，不再依赖行号切片。
      行号契约已由审计方废止（见《第3轮审阅意见》§5），此处为替代方案。 */
+  /* ================= 演示包：把"浏览器里的录音"变成能带走的文件 =================
+     问题：录音存在 IndexedDB，换电脑、换浏览器、清了站点数据就没了。
+     导出的单文件 HTML 有音频（data URI 内嵌），但它只能"听"，不能继续录、不能进地图。
+     演示包补的是这一段：把这一卷的录音原样打包成 JSON（base64），
+     到了演示机上导回去，IndexedDB 与索引一起恢复 —— 地图里点词条就能播。
+
+     格式：{format:'xiangyince-demo/1', volumeName, clips:[{…原记录, data:base64}]}
+     刻意**不带卷本身**：卷有自己的导入通道（开一卷页），这里只管声音。
+     两个渠道分开，谁缺补谁，不会互相顶掉。 */
+  const DEMO_FORMAT = 'xiangyince-demo/1';
+
+  function blobToBase64(blob) {
+    return new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => {
+        const s = String(fr.result || '');
+        const i = s.indexOf(',');
+        res(i >= 0 ? s.slice(i + 1) : '');
+      };
+      fr.onerror = () => rej(fr.error || new Error('read-blob-failed'));
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  function base64ToBlob(b64, mime) {
+    const bin = atob(b64);
+    const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new Blob([u8], { type: mime || 'audio/webm' });
+  }
+
+  async function exportDemo() {
+    const clips = await store.all();
+    const V = window.XZ && window.XZ.volumes;
+    const vol = V && V.current ? V.current() : null;
+    const out = {
+      format: DEMO_FORMAT,
+      exportedAt: new Date().toISOString(),
+      volumeNo: vol ? vol.no : 1,
+      volumeName: vol ? vol.name : '徐州',
+      clips: []
+    };
+    for (const c of clips) {
+      if (!c || !c.blob) continue;
+      const item = {};
+      Object.keys(c).forEach((k) => { if (k !== 'blob') item[k] = c[k]; });
+      item.mime = c.blob.type || c.mime || 'audio/webm';
+      item.data = await blobToBase64(c.blob);
+      out.clips.push(item);
+    }
+    return out;
+  }
+
+  /* 导入：按"词"重新对题，不按题号。
+     两个卷的题号一定不同（词 id 带卷号前缀），但词是同一个词。 */
+  async function importDemo(doc) {
+    if (!doc || doc.format !== DEMO_FORMAT) {
+      return { ok: false, errors: [{ msg: '这不是本程序的演示包（format 应为 ' + DEMO_FORMAT + '）' }] };
+    }
+    const list = Array.isArray(doc.clips) ? doc.clips : null;
+    if (!list || !list.length) {
+      return { ok: false, errors: [{ msg: '这个演示包里没有录音（clips 为空）' }] };
+    }
+
+    let ok = 0, miss = 0, empty = 0;
+    const missing = [];
+    for (const it of list) {
+      if (!it || !it.data) { empty++; continue; }
+      const target = (it.text && P.filter((p) => p.text === it.text)[0]) ||
+        (it.atlasId && P.filter((p) => p.atlasId === it.atlasId)[0]) || null;
+
+      // 题对不上也照样收：声音不能因为题库变了就丢掉（标成"未对上"，列表里仍可见）
+      if (!target) { miss++; missing.push(it.text || it.id || '?'); }
+
+      const rec = {};
+      Object.keys(it).forEach((k) => { if (k !== 'data') rec[k] = it[k]; });
+      if (target) {
+        rec.promptId = target.id;
+        rec.atlasId = target.atlasId || null;
+        rec.text = target.text;
+      }
+      rec.blob = base64ToBlob(it.data, it.mime);
+      rec.importedAt = Date.now();
+      try { await store.put(rec); ok++; } catch (e) { empty++; }
+    }
+
+    await reload();     // 重写 localStorage 索引 + 重画列表
+    return {
+      ok: true, count: ok, unmatched: miss, bad: empty, missing: missing.slice(0, 5),
+      volumeName: doc.volumeName || '',
+      volumeNo: doc.volumeNo || 0
+    };
+  }
+
+  function demoFileName() {
+    const V = window.VOLUME || {};
+    return '演示包-' + (V.name || '徐州') + '-' + new Date().toISOString().slice(0, 10) + '.json';
+  }
+
   window.__probe = {
     Analysis,
     stats,
     levels: (frames) => Analysis.levels(frames),
     encodeWavBase64,
     store,
+    exportDemo,
+    importDemo,
     version: 'r3-fix'
   };
 })();

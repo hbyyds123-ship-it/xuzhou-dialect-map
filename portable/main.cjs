@@ -123,6 +123,8 @@ async function main() {
     const rec = await get(base + 'recorder/');
     // 别拿标题文案当判据：标题会随卷变（改成「采录 · 乡音册」那天这条就误报过）
     checks.push(['采样台', rec.code === 200 && rec.body.includes('id="recBtn"')]);
+    // 演示包：换机器演示要靠它把录音带走
+    checks.push(['演示包', rec.body.includes('demoExport') && rec.body.includes('导入演示包')]);
     const css = await get(base + 'css/paper.css');
     checks.push(['纸本样式', css.code === 200 && css.body.includes('--paper')]);
     const js = await get(base + 'js/app.js');

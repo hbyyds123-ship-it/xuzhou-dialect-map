@@ -258,6 +258,12 @@
   /* 破坏性动作：不再和导出同样式 */
   button.danger{color:var(--ink2); border-color:var(--rule);}
   button.danger:hover:not(:disabled){background:transparent; color:var(--zhu); border-color:var(--zhu);}
+
+  /* 演示包：一行，不抢主行动的位置 */
+  .demo-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding-top:12px; border-top:1px dotted var(--rule);}
+  .demo-cap{font-size:10px; letter-spacing:.14em; color:var(--ink2); border:1px solid var(--rule); padding:1px 5px;}
+  .demo-tip{font-size:10.5px; color:var(--ink2); line-height:1.7;}
+  .demo-row .ghost{font-size:11.5px; padding:5px 10px;}
 </style>
 </head>
 <body>
@@ -383,7 +389,14 @@
         <button id="quizBtn" class="ghost">开始听音选词</button>
         <button id="clearBtn" class="ghost danger" title="先导出再清空；清空不可恢复">清空全部</button>
       </footer>
-      <p class="note">录音和标注只存在这台电脑的浏览器里。「导出单文件存档」会给你一个双击就能打开的 HTML，不需要本程序，也不需要联网。</p>
+      <div class="demo-row">
+        <span class="demo-cap">换电脑演示</span>
+        <button id="demoExport" class="ghost">导出演示包（含录音）</button>
+        <button id="demoImport" class="ghost">导入演示包</button>
+        <input type="file" id="demoFile" accept=".json,application/json" hidden>
+        <span class="demo-tip">录音在浏览器里，不在安装包里 —— 换机器时用这个把声音带过去。</span>
+      </div>
+      <p class="note">录音和标注只存在这台电脑的浏览器里。「导出单文件存档」会给你一个双击就能打开的 HTML（音频已内嵌），不需要本程序，也不需要联网。</p>
     </main>
 
     <aside>

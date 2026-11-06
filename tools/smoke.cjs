@@ -154,6 +154,39 @@ function check(name, ok, extra) {
     check('图鉴分母 = 词条总数', done.total === 54, 'total=' + done.total);
   }
 
+  /* ⑦ 点开一个区，得看见「这个区的方言词」而不是只有文化地点 */
+  await page.goto(base, { waitUntil: 'load' });
+  await page.waitForTimeout(1200);
+  const chip = await page.$('#districtBar .chip[data-name="鼓楼区"]');
+  if (chip) {
+    await chip.click();
+    await page.waitForTimeout(800);
+    const dp = await page.evaluate(() => {
+      const rows = [...document.querySelectorAll('.word-row')];
+      const heads = [...document.querySelectorAll('.p-sec h3')].map((h) => h.textContent.trim());
+      return {
+        heads,
+        rows: rows.length,
+        first: rows[0] ? rows[0].querySelector('.wr-w').textContent.trim() : '',
+        firstHasAct: !!(rows[0] && rows[0].querySelector('.wr-act')),
+        firstWord: rows[0] ? rows[0].getAttribute('data-word') : ''
+      };
+    });
+    check('区县面板有「这个区的方言词」且每行带动作按钮',
+      dp.heads.indexOf('这个区的方言词') >= 0 && dp.rows >= 5 && dp.firstHasAct,
+      `小节=${JSON.stringify(dp.heads)} 词行=${dp.rows} 首词「${dp.first}」`);
+    // 点词行应进词条视图
+    if (dp.firstWord) {
+      await page.click('.word-row .wr-w');   // 点词本身，别点到右边的 ＋录 链接
+      await page.waitForTimeout(600);
+      const hash = await page.evaluate(() => location.hash);
+      // 路由实际是 #/w/<id>（不是 #/word/），别按想象中的格式断言
+      check('区县面板点词行会进词条', /#\/w\/[^/]+$/.test(hash), 'hash=' + hash);
+    }
+  } else {
+    check('区县面板有「这个区的方言词」且每行带动作按钮', false, '找不到 鼓楼区 的 chip');
+  }
+
   await browser.close();
   srv.close();
 

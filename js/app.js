@@ -597,19 +597,65 @@
         '</div>';
     });
 
+    /* 「这个区的方言词」：点开一个区，最该看见的是"这里有哪些词、哪些已经有人念过"。
+       原先只有方言点（曲艺/文献/活动），点进去是文化地点，看完仍不知道这区的话长什么样。 */
+    const S = window.XZ && window.XZ.sample;
+    // WORDS 里的 d 是区县名（不是 id）：换一卷后仍然成立，别改成 districtId
+    const words = WORDS.filter(function (w) { return w.d === d.name; });
+    const recN = words.filter(function (w) { return S && S.has(w.id); }).length;
+
+    let wordRows = '';
+    words.forEach(function (w) {
+      const has = !!(S && S.has(w.id));
+      wordRows +=
+        '<div class="word-row" data-word="' + esc(w.id) + '">' +
+        '<b class="wr-w">' + esc(w.w) + '</b>' +
+        '<span class="wr-m">' + esc(w.m || '') + '</span>' +
+        (has
+          ? '<button class="wr-act has" data-play="' + esc(w.id) + '" aria-label="播你家的录音">▶ 听</button>'
+          : '<a class="wr-act" href="recorder/#p=' + encodeURIComponent(w.id) + '" aria-label="录这个词">＋ 录</a>') +
+        '</div>';
+    });
+
     panelBody.innerHTML =
       '<div class="p-hero">' +
       '<img src="' + esc(cover) + '" alt="">' +
       '<div class="p-hero-badge" style="--c:#e8b54b">' + esc(d.type) + '</div>' +
       '<div class="p-hero-title"><h2>' + esc(d.name) + '</h2>' +
-      '<div class="meta" style="--c:#e8b54b">' + esc(d.note) + ' · ' + spots.length + ' 处方言点</div></div>' +
+      '<div class="meta" style="--c:#e8b54b">' + esc(d.note) + ' · ' + words.length + ' 个方言词 · ' +
+        recN + ' 个有真人录音</div></div>' +
       '</div>' +
       '<div class="p-sec"><h3>区县速写</h3><p class="p-desc">' + esc(d.intro) + '</p></div>' +
+      (words.length
+        ? '<div class="p-sec"><h3>这个区的方言词</h3>' +
+          '<p class="p-desc" style="margin-bottom:8px">点词看说法与例句；▶ 听已经录下的，＋ 去录你家怎么说。</p>' +
+          wordRows + '</div>'
+        : '') +
       '<div class="p-sec"><h3>方言点</h3>' + rows + '</div>' +
       sceneSection(d.id);
 
     $$('.spot-row', panelBody).forEach(function (r) {
       r.addEventListener('click', function () { openSpot(r.dataset.spot, true); });
+    });
+
+    // 词行：点行看词条；点 ▶ 就地播（不跳走）；＋ 是 <a>，交给浏览器跳转
+    $$('.word-row', panelBody).forEach(function (r) {
+      r.addEventListener('click', function (e) {
+        const b = e.target.closest ? e.target.closest('[data-play]') : null;
+        if (b) {
+          e.preventDefault();
+          e.stopPropagation();
+          const id = b.getAttribute('data-play');
+          b.textContent = '…';
+          window.XZ.sample.play(id).then(function (ok) {
+            b.textContent = ok ? '▶ 再听' : '▶ 听';
+            if (!ok) toast('这条录音没能播出来。');
+          });
+          return;
+        }
+        if (e.target.closest && e.target.closest('a')) return;
+        ROUTER.go('word', r.getAttribute('data-word'));
+      });
     });
 
     wireSceneEntries();

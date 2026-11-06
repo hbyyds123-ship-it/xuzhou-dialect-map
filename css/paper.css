@@ -646,3 +646,21 @@ body::after {
 @media (max-width: 900px) {
   .rec-cta { margin-left: 8px; font-size: 12px; padding: 2px 7px; }
 }
+
+/* ---------- 区县面板：「这个区的方言词」 ---------- */
+.word-row {
+  display: grid; grid-template-columns: 62px minmax(0, 1fr) auto;
+  align-items: baseline; gap: 8px; padding: 7px 2px;
+  border-bottom: 1px solid var(--rule); cursor: pointer;
+}
+.word-row:hover { background: var(--paper-2); }
+.wr-w { font-family: var(--serif); font-size: 17px; font-weight: 400; color: var(--ink); letter-spacing: .04em; }
+.wr-m { font-size: 11.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wr-act {
+  font: inherit; font-size: 11px; padding: 2px 7px; line-height: 1.5;
+  border: 1px solid var(--rule-strong); background: transparent; color: var(--ink-2);
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.wr-act.has { color: var(--zhu); border-color: var(--zhu); }
+.wr-act:hover { background: var(--ink); color: var(--paper); }
+.wr-act.has:hover { background: var(--zhu); color: var(--paper); }

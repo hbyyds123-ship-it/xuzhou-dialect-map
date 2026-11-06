@@ -582,7 +582,6 @@
     const rec = districtMap[name];
     if (!d) return;
     const spots = SPOTS.filter(s => s.district === name);
-    const cover = spots[0] ? spots[0].thumb : 'assets/thumbs/qinshu.svg';
 
     let rows = '';
     spots.forEach(function (s) {
@@ -617,20 +616,36 @@
         '</div>';
     });
 
+    const total = WORDS.length;
+
     panelBody.innerHTML =
-      '<div class="p-hero">' +
-      '<img src="' + esc(cover) + '" alt="">' +
-      '<div class="p-hero-badge" style="--c:#e8b54b">' + esc(d.type) + '</div>' +
+      /* 区县页的头图曾经拿「这个区第一个方言点」的缩略图当封面：
+         鼓楼区拿到的是琴书插画，还算好看；沛县拿到的是「汉」字方牌，
+         一铺满 16:9 就把标题和那行小字全压在深色方块上，读不出来。
+         方言点的缩略图不是区县的脸 —— 这里改成纸本抬头：一个字的水印 + 区名。 */
+      '<div class="p-hero p-hero-paper">' +
+      '<div class="ph-mark" aria-hidden="true">' + esc(String(d.name || '').slice(0, 1)) + '</div>' +
+      '<div class="p-hero-badge">' + esc(d.type) + '</div>' +
       '<div class="p-hero-title"><h2>' + esc(d.name) + '</h2>' +
-      '<div class="meta" style="--c:#e8b54b">' + esc(d.note) + ' · ' + words.length + ' 个方言词 · ' +
+      '<div class="meta">' + esc(d.note) + ' · ' + words.length + ' 个方言词 · ' +
         recN + ' 个有真人录音</div></div>' +
       '</div>' +
       '<div class="p-sec"><h3>区县速写</h3><p class="p-desc">' + esc(d.intro) + '</p></div>' +
       (words.length
         ? '<div class="p-sec"><h3>这个区的方言词</h3>' +
-          '<p class="p-desc" style="margin-bottom:8px">点词看说法与例句；▶ 听已经录下的，＋ 去录你家怎么说。</p>' +
-          wordRows + '</div>'
-        : '') +
+          // 抽样这件事必须写在词表上方：只有 3 个词时，不说清就像数据缺了一大半
+          '<p class="p-desc" style="margin-bottom:8px">全卷 ' + total + ' 条里，这一区收了 ' +
+            words.length + ' 条 —— 方言地图是抽样，不是词典。' +
+            (recN ? '已录 ' + recN + ' 条，点 ▶ 听；' : '还没有一条真人录音，') +
+            '点词看释义与例句，＋ 去录你家怎么说。</p>' +
+          wordRows +
+          (recN < words.length
+            ? '<p class="p-todo">这一区还差 ' + (words.length - recN) + ' 条真人录音 —— ' +
+              '录一条，它就是这一区的第 ' + (recN + 1) + ' 条。</p>'
+            : '') +
+          '</div>'
+        : '<div class="p-sec"><h3>这个区的方言词</h3>' +
+          '<p class="p-desc">这一区还没有收词。要添，去《开一卷》页给这一卷补词表。</p></div>') +
       '<div class="p-sec"><h3>方言点</h3>' + rows + '</div>' +
       sceneSection(d.id);
 

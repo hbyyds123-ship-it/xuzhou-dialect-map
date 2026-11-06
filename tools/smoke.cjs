@@ -164,17 +164,32 @@ function check(name, ok, extra) {
     const dp = await page.evaluate(() => {
       const rows = [...document.querySelectorAll('.word-row')];
       const heads = [...document.querySelectorAll('.p-sec h3')].map((h) => h.textContent.trim());
+      const hero = document.querySelector('#panelBody .p-hero');
+      const desc = [...document.querySelectorAll('.p-sec .p-desc')].map((p) => p.textContent.trim()).join(' ');
       return {
         heads,
         rows: rows.length,
         first: rows[0] ? rows[0].querySelector('.wr-w').textContent.trim() : '',
         firstHasAct: !!(rows[0] && rows[0].querySelector('.wr-act')),
-        firstWord: rows[0] ? rows[0].getAttribute('data-word') : ''
+        firstWord: rows[0] ? rows[0].getAttribute('data-word') : '',
+        // 抬头不许再拿方言点缩略图当封面（沛县那张「汉」牌会把标题压住）
+        heroHasImg: !!(hero && hero.querySelector('img')),
+        heroPaper: !!(hero && hero.classList.contains('p-hero-paper')),
+        hasMark: !!(hero && hero.querySelector('.ph-mark')),
+        desc
       };
     });
     check('区县面板有「这个区的方言词」且每行带动作按钮',
       dp.heads.indexOf('这个区的方言词') >= 0 && dp.rows >= 5 && dp.firstHasAct,
       `小节=${JSON.stringify(dp.heads)} 词行=${dp.rows} 首词「${dp.first}」`);
+    // 抬头是纸本（字水印 + 区名），不是某个方言点的缩略图铺满
+    check('区县面板抬头是纸本（不再拿方言点缩略图当封面）',
+      dp.heroPaper && dp.hasMark && !dp.heroHasImg,
+      JSON.stringify({ heroPaper: dp.heroPaper, hasMark: dp.hasMark, heroHasImg: dp.heroHasImg }));
+    // 只有两三个词的区（沛县 3、睢宁 2）必须说清这是抽样，否则像数据丢了
+    check('区县面板说明这是抽样并给出全卷条数',
+      /抽样/.test(dp.desc) && /全卷\s*54\s*条/.test(dp.desc),
+      dp.desc.slice(0, 90));
     // 点词行应进词条视图
     if (dp.firstWord) {
       await page.click('.word-row .wr-w');   // 点词本身，别点到右边的 ＋录 链接

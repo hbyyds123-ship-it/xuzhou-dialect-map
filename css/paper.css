@@ -264,6 +264,39 @@ html, body {
 .p-hero-title { color: var(--ink) !important; font-family: var(--serif) !important; text-shadow: none !important; }
 .p-hero-badge { background: transparent !important; border: 1px solid var(--rule-strong) !important; color: var(--ink-2) !important; }
 .p-desc, .p-meta, .meta { color: var(--ink-2) !important; }
+
+/* ---------- 区县页抬头 ----------
+   原来拿「这个区第一个方言点」的缩略图当 16:9 封面：沛县那张是「汉」字方牌，
+   一铺满就把标题和下面那行小字压在深色块里，读不出来。
+   方言点的缩略图不是区县的脸 —— 这里改成纸本抬头：一个字的水印 + 区名。 */
+.p-hero.p-hero-paper {
+  aspect-ratio: auto !important; overflow: hidden;
+  padding: 16px 20px 14px !important;
+  background: linear-gradient(180deg, var(--paper-2), var(--paper-3)) !important;
+  border-bottom: 2px solid var(--ink) !important;
+}
+.p-hero.p-hero-paper::after { display: none !important; }
+.p-hero-paper .ph-mark {
+  position: absolute; right: 20px; top: 50%; transform: translateY(-50%);
+  font-family: var(--serif); font-size: 74px; line-height: 1;
+  color: var(--zhu); opacity: .11; pointer-events: none; user-select: none;
+}
+.p-hero-paper .p-hero-badge {
+  position: static; display: inline-block; margin: 0 0 8px;
+  padding: 2px 7px; font-size: 10px; letter-spacing: .14em;
+}
+.p-hero-paper .p-hero-title { position: static; left: auto; right: auto; bottom: auto; }
+.p-hero-paper .p-hero-title h2 {
+  color: var(--ink) !important; font-size: 26px; letter-spacing: .14em; text-shadow: none !important;
+}
+.p-hero-paper .p-hero-title .meta { margin-top: 6px; color: var(--ink-2) !important; letter-spacing: .04em; }
+
+/* 「这一区还差几条录音」：给"点进来能做什么"一个落点 */
+.p-todo {
+  margin: 12px 0 0; padding: 8px 10px;
+  border: 1px solid var(--rule); border-left: 2px solid var(--zhu);
+  font-size: 11.5px; line-height: 1.85; color: var(--ink-2);
+}
 .panel .q-word {
   color: var(--ink) !important;
   font-family: var(--serif) !important;

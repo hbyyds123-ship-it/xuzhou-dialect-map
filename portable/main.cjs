@@ -102,10 +102,39 @@ function openBrowser(url) {
   } catch (e) { /* 打不开就让人手点 */ }
 }
 
+/* 端口漂移 = 用户的卷"不见了"。
+   localStorage 按 origin 分：这次开在 8000、下次因为 8000 被上一次的进程占着就落到 8001，
+   同一个节目在浏览器眼里就是两个不同的站点 —— 建的卷、录的音全都不在了（其实还在）。
+   所以先问一句"8000 上是不是已经有一个乡音册"，是就直接打开它，不再起第二个服务。 */
+function probe(base) {
+  return new Promise((resolve) => {
+    const req = http.get(base, { timeout: 1200 }, (r) => {
+      let b = '';
+      r.setEncoding('utf8');
+      r.on('data', (d) => { if (b.length < 8000) b += d; });
+      r.on('end', () => resolve(r.statusCode === 200 && b.includes('data-vol="title"')));
+    });
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => { req.destroy(); resolve(false); });
+  });
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const selfTest = argv.includes('--self-test');
   const noOpen = argv.includes('--no-open');
+
+  // 已经开着一份：复用它，别另起一个 origin（那会让已有的卷看起来消失了）
+  if (!selfTest) {
+    for (const p of [8000, 8001, 8002, 8003, 8080]) {
+      const base = 'http://127.0.0.1:' + p + '/';
+      if (await probe(base)) {
+        console.log('  乡音册已经开着了，直接用这一个：' + base);
+        if (!noOpen) openBrowser(base);
+        return;
+      }
+    }
+  }
 
   let port = 0;
   for (const p of [8000, 8001, 8002, 8003, 8080, 0]) {

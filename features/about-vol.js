@@ -47,6 +47,30 @@
         (v ? esc(v) : '<span class="about-miss">—</span>') + '</dd></div>';
     }
 
+    /* 卷目必须是真的。
+       原来这三行是写死的："第 N 卷 已成卷 / 第 N+1 卷 空位" ——
+       用户明明已经开了第 2 卷，卡片还说第 2 卷是空位，
+       于是"我建的那一卷不见了"。写死的目录比没有目录更坏。 */
+    var VLib = window.XZ && window.XZ.volumes;
+    var vols = VLib ? VLib.list() : [];
+    var curId = VLib ? VLib.activeId() : null;
+    var shelf = [{ no: 1, name: '徐州', id: '', builtin: true }].concat(vols.map(function (v) {
+      return { no: v.no, name: v.name, id: v.id, words: v.words.length };
+    }));
+    var nextNo = shelf.reduce(function (m, r) { return Math.max(m, r.no || 0); }, 1) + 1;
+
+    var shelfHtml = shelf.map(function (r) {
+      var cur = r.builtin ? !curId : (r.id === curId);
+      return '<div class="av-row' + (cur ? ' done' : '') + '"' +
+        (r.id ? ' data-vol-id="' + esc(r.id) + '"' : (r.builtin ? ' data-vol-id=""' : '')) + '>' +
+        '<span class="av-no">第 ' + r.no + ' 卷</span>' +
+        '<b>' + esc(r.name) + '</b>' +
+        '<span class="av-st">' + (cur ? '正在看 · ' + (r.builtin ? '样板房' : r.words + ' 个词')
+          : '<button class="av-go" type="button">切到这一卷</button>') + '</span></div>';
+    }).join('') +
+      '<div class="av-row more"><span class="av-no">第 ' + nextNo + ' 卷</span><b>——</b>' +
+      '<span class="av-st">空着 · 谁的老家谁开</span></div>';
+
     card.innerHTML =
       '<div class="mc-head"><div><div class="mc-eyebrow">关于</div>' +
       '<h2 class="mc-title" style="font-size:19px">' + esc(V.title || '乡音册') + ' · 第 ' + (V.no || 1) + ' 卷</h2>' +
@@ -65,14 +89,8 @@
             (missing.indexOf('范本音发音人') >= 0 ? '这一卷还没有一条请人念过的录音，' : '') +
             '来源要能查，所以在拿到之前宁可空着。填法见《开一卷》页。</p>'
           : '') +
-        '<div class="about-vols">' +
-          '<div class="av-row done"><span class="av-no">第 ' + (V.no || 1) + ' 卷</span><b>' + esc(V.name || '') + '</b>' +
-            '<span class="av-st">已成卷</span></div>' +
-          '<div class="av-row"><span class="av-no">第 ' + ((V.no || 1) + 1) + ' 卷</span><b>——</b>' +
-            '<span class="av-st">空位 · 谁的老家谁开</span></div>' +
-          '<div class="av-row more"><span class="av-no">第 ' + ((V.no || 1) + 2) + ' 卷起</span>' +
-            '<b>…</b><span class="av-st">开卷不需要联系作者</span></div>' +
-        '</div>' +
+        '<div class="about-vols" id="aboutVols">' + shelfHtml + '</div>' +
+        '<p class="av-tip">这是本机的全部卷 —— 点「第 1 卷」可以切回徐州；你开的卷也在这里，不会因为切走而消失。</p>' +
         '<div class="about-note">' +
           '<p>这不是一个「' + esc(V.name || '') + ' App」，是<strong>一卷可以复制的地方志</strong>。' +
           '引擎不动，换掉这一卷的词表、片区、录音，同一套代码就是另一座城 —— ' +
@@ -86,6 +104,18 @@
     Array.prototype.forEach.call(card.querySelectorAll('[data-close]'), function (b) {
       b.addEventListener('click', function () { modal.classList.remove('on'); });
     });
+    /* 点卷目就直接切过去 —— 这是"我建的那一卷在哪"的唯一答案，
+       不需要用户再去开一卷页底部找。 */
+    Array.prototype.forEach.call(card.querySelectorAll('.av-row[data-vol-id]'), function (r) {
+      if (r.classList.contains('done')) return;
+      r.style.cursor = 'pointer';
+      r.addEventListener('click', function () {
+        var id = r.getAttribute('data-vol-id');
+        if (!VLib) return;
+        if (id) VLib.activate(id); else VLib.deactivate();
+        location.href = 'index.html';
+      });
+    });
     modal.classList.add('on');
   }
 
@@ -97,5 +127,20 @@
   if (tag) {
     tag.style.cursor = 'pointer';
     tag.addEventListener('click', open);
+  }
+
+  /* 有自己开的卷时，顶栏给一个看得见的「我的卷 · N」。
+     只在「关于本卷」里能找到，等于找不到 —— 那张卡得先知道去点卷号标签。 */
+  var mine = document.querySelector('.vol-mine');
+  if (mine) {
+    var list = (window.XZ && window.XZ.volumes) ? window.XZ.volumes.list() : [];
+    if (list.length) {
+      mine.hidden = false;
+      mine.textContent = '我的卷 · ' + list.length;
+      mine.href = 'volumes.html#mine';
+      mine.title = list.map(function (v) { return '第 ' + v.no + ' 卷 ' + v.name; }).join(' / ');
+    } else {
+      mine.hidden = true;
+    }
   }
 })();

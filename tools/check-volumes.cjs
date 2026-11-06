@@ -512,6 +512,137 @@ function v15() {
         capApi.uNull === true && capApi.afterW === capApi.beforeW,
       JSON.stringify(capApi));
 
+    /* ================= V24 切回第 1 卷之后，自己开的卷还得找得到 =================
+       用户报告："新建了一个新地图，再切换回第一卷，新建的就找不到了"。
+       根因不是数据丢了，是「关于本卷」的卷目写死成"第 N 卷 已成卷 / 第 N+1 卷 空位"——
+       他明明开了第 2 卷，卡片却说第 2 卷空着。所以这里验的是"卷目是不是真的"。 */
+    const two = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      localStorage.removeItem('xzdt.volumes.v1');
+      const a=V.create({title:'乡音册',name:'甲镇',dialect:'甲镇话',mark:'甲',districts:['城关','东乡'],
+        words:[{w:'甲一'},{w:'甲二'},{w:'甲三'},{w:'甲四'}]});
+      const b=V.create({title:'乡音册',name:'乙镇',dialect:'乙镇话',mark:'乙',districts:['城关'],
+        words:[{w:'乙一'},{w:'乙二'},{w:'乙三'},{w:'乙四'}]});
+      V.deactivate();                       // 这就是用户说的"切回第一卷"
+      return {a:a&&a.id, b:b&&b.id, active:V.activeId()};
+    })()`, true);
+
+    await go(`http://127.0.0.1:${PORT}/index.html`, 3000);
+    const shelf = await ev(`(async()=>{
+      const t=document.querySelector('.vol-tag');
+      if(t) t.click();
+      await new Promise(r=>setTimeout(r,700));
+      const rows=[...document.querySelectorAll('.av-row')];
+      const m=document.querySelector('.vol-mine');
+      return {
+        ids: rows.map(r=>r.getAttribute('data-vol-id')).filter(x=>x!==null),
+        names: rows.map(r=>r.innerText.replace(/\\s+/g,' ').trim()),
+        done: rows.filter(r=>r.classList.contains('done')).map(r=>r.getAttribute('data-vol-id')),
+        mine: m?{hidden:m.hidden, text:m.textContent.trim(), href:(m.getAttribute('href')||'')}:null
+      };
+    })()`, true);
+
+    check('V24', '切回第 1 卷后，「关于本卷」的卷目是本机真实的全部卷（不再写死"空位"）',
+      shelf && !shelf.__err && shelf.ids[0] === '' && shelf.ids.length === 3 &&
+        shelf.ids.indexOf(two.a) > 0 && shelf.ids.indexOf(two.b) > 0 &&
+        shelf.done.length === 1 && shelf.done[0] === '' &&
+        /乙镇/.test(shelf.names.join(' ')),
+      JSON.stringify(shelf && shelf.names));
+
+    const toB = await ev(`(()=>{
+      const r=[...document.querySelectorAll('.av-row[data-vol-id]')]
+        .find(x=>x.getAttribute('data-vol-id') === ${JSON.stringify(two.b)});
+      if(!r) return {err:'卷目里没有乙镇'};
+      r.click(); return {ok:1};
+    })()`, true);
+    await sleep(2800);
+    const landed = await ev(`(()=>({
+      active:window.XZ.volumes.activeId(),
+      board:!!document.getElementById('volBoard'),
+      h1:((document.querySelector('.vol-board h1')||{}).textContent||'').trim()
+    }))()`, true);
+    check('V24-b', '点卷目里的那一卷就切过去（不用再去开一卷页底部找）',
+      landed && landed.board === true && landed.active === two.b && landed.h1 === '乙镇',
+      `${JSON.stringify(toB)} → ${JSON.stringify(landed)}`);
+
+    check('V26', '顶栏给一个看得见的「我的卷 · N」，指向开一卷页的卷列表',
+      !!(shelf && shelf.mine && shelf.mine.hidden === false &&
+        /我的卷/.test(shelf.mine.text) && /volumes\.html/.test(shelf.mine.href)),
+      JSON.stringify(shelf && shelf.mine));
+
+    /* ================= V25 只有一个词的卷，不能像坏了 =================
+       用户报告："我新建的一卷，假如只有一个词，就光秃秃地在那里"。
+       图不能只画一个点就完事：要说清"不是坏了"，并给一条能走下去的路。 */
+    await go(`http://127.0.0.1:${PORT}/volumes.html`, 1600);
+    const one = await ev(`(()=>{
+      const V=window.XZ.volumes;
+      localStorage.removeItem('xzdt.volumes.v1');
+      const a=V.create({title:'乡音册',name:'一条村',dialect:'一条村话',mark:'一',
+        districts:['城关','东乡','西乡'],words:[{w:'茅子',meaning:'厕所'}]});
+      return {id:a.id, words:a.words.length, dists:a.districts.length};
+    })()`, true);
+
+    await go(`http://127.0.0.1:${PORT}/index.html`, 2800);
+    const sparse0 = await ev(`(()=>({
+      strip:((document.querySelector('.vb-sparse')||{}).innerText||'').replace(/\\s+/g,' ').trim(),
+      empties:document.querySelectorAll('.vb-empty').length,
+      pins:document.querySelectorAll('.vb-pin').length,
+      regions:document.querySelectorAll('.vb-region').length
+    }))()`, true);
+    check('V25-0', '一个词的卷：图上说清"不是坏了"，每个空片区各给一个添词入口',
+      sparse0 && !sparse0.__err && /不是坏了/.test(sparse0.strip) && /1/.test(sparse0.strip) &&
+        sparse0.pins === 1 && sparse0.empties === sparse0.regions - 1 && sparse0.empties === 2,
+      JSON.stringify(sparse0));
+
+    const added = await ev(`(async()=>{
+      const e=document.querySelector('.vb-empty');
+      if(!e) return {err:'没有空片区入口'};
+      e.click();
+      await new Promise(r=>setTimeout(r,500));
+      const ta=document.getElementById('vbAddText');
+      if(!ta) return {err:'点空片区没出添词框'};
+      ta.value='洋柿子 | 西红柿 | 这洋柿子咋卖\\n管 | 行、可以';
+      document.getElementById('vbAddSave').click();
+      await new Promise(r=>setTimeout(r,800));
+      const c=window.XZ.volumes.current();
+      return {words:c.words.length,
+        pins:document.querySelectorAll('.vb-pin').length,
+        empties:document.querySelectorAll('.vb-empty').length,
+        strip:((document.querySelector('.vb-sparse')||{}).innerText||'').replace(/\\s+/g,' ').trim(),
+        sub:((document.querySelector('.vb-sub')||{}).textContent||'')};
+    })()`, true);
+    check('V25-1', '从空片区点进去添词：词落在那一片、点画出来、空提示少一个、计数跟着变',
+      added && !added.__err && added.words === 3 && added.pins === 3 &&
+        added.empties === 1 && /3/.test(added.strip) && /3 个词条/.test(added.sub || ''),
+      JSON.stringify(added));
+
+    await go(`http://127.0.0.1:${PORT}/index.html`, 2600);
+    const persist = await ev(`(()=>{
+      const c=window.XZ.volumes.current();
+      return {words:c.words.length, pins:document.querySelectorAll('.vb-pin').length,
+        sparse:!!document.querySelector('.vb-sparse')};
+    })()`, true);
+    check('V25-2', '添进去的词刷新还在（写进 localStorage，不是只活在这张页面上）',
+      persist && persist.words === 3 && persist.pins === 3 && persist.sparse === true,
+      JSON.stringify(persist));
+
+    const guard = await ev(`(()=>{
+      const V=window.XZ.volumes, c=V.current();
+      const before=V.current().words.length;
+      const dup=V.addWords(c.id, [{w:'茅子'}]);
+      const afterDup=V.current().words.length;
+      const big=V.addWords(c.id, Array.from({length:500},(_,i)=>({w:'新'+i})));
+      return {before,
+        dupOk:!!dup.ok, dupMsg:(((dup.errors||[])[0])||{}).msg||'', afterDup,
+        bigOk:!!big.ok, bigMsg:(((big.errors||[])[0])||{}).msg||'',
+        afterBig:V.current().words.length};
+    })()`, true);
+    check('V25-3', '添词也守规则：重名不重复写、超上限整批拒绝、失败时词数不变',
+      guard && !guard.__err && guard.dupOk === false && /茅子/.test(guard.dupMsg) && /有/.test(guard.dupMsg) &&
+        guard.afterDup === guard.before &&
+        guard.bigOk === false && /500/.test(guard.bigMsg) && guard.afterBig === guard.before,
+      JSON.stringify(guard));
+
     console.log(`\n结果：${pass} 通过 / ${fail} 失败`);
   } catch (e) {
     console.error('崩溃：', e && e.stack || e);

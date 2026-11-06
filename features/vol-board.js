@@ -44,6 +44,7 @@
       '</div>' +
       '<div class="vb-acts">' +
         '<button id="vbSample" class="primary">去采录</button>' +
+        '<button id="vbAdd">＋ 添词</button>' +
         '<button id="vbQuiz"' + (vol.words.length < 4 ? ' disabled title="至少 4 个词才能出四选一"' : '') + '>测一测</button>' +
         '<button id="vbExport">导出这一卷</button>' +
         '<a class="vb-link" href="volumes.html">再开一卷</a>' +
@@ -51,6 +52,7 @@
         '<button id="vbBack" class="vb-quiet">切回徐州</button>' +
       '</div>' +
     '</div>' +
+    '<div id="vbSparse"></div>' +
     '<div class="vb-map" id="vbMap" data-n="' + Math.min(vol.districts.length, 6) + '">' +
       vol.districts.map(function (d, i) {
         return '<div class="vb-region" data-d="' + esc(d.id) + '">' +
@@ -79,6 +81,59 @@
     });
   }
   paintPins();
+
+  /* ---------- 卷头计数 / 稀疏状态 / 空片区 ----------
+     只有一两个词的卷，图上就是孤零零一个点。那不是坏了，是还没长起来 ——
+     不写清楚，用户只会以为程序出错；写了却不让添，等于告诉他"重建一份吧"。
+     所以这里既解释，也给入口。 */
+  var SPARSE_AT = 4;
+
+  function renderMeta() {
+    var sub = $('.vb-sub');
+    if (sub) {
+      var dn = vol.words.filter(function (w) { return done(w.id); }).length;
+      sub.textContent = vol.dialect + ' · ' + vol.districts.length + ' 个片区 · ' +
+        vol.words.length + ' 个词条 · 已录 ' + dn + ' 条';
+    }
+    var q = $('#vbQuiz');
+    if (q) {
+      if (vol.words.length < 4) { q.disabled = true; q.title = '至少 4 个词才能出四选一'; }
+      else { q.disabled = false; q.removeAttribute('title'); }
+    }
+  }
+
+  function renderSparse() {
+    var box = $('#vbSparse');
+    if (!box) return;
+    var n = vol.words.length;
+    if (n >= SPARSE_AT) { box.innerHTML = ''; return; }
+    box.innerHTML =
+      '<div class="vb-sparse">' +
+        '<p>这一卷现在只有 <b>' + n + '</b> 个词，图上就' + (n === 1 ? '一个点' : ' ' + n + ' 个点') +
+          ' —— <em>不是坏了</em>。再添 ' + (SPARSE_AT - n) + ' 条，分幅图才立得住，采录和测验也才有东西可走。</p>' +
+        '<button type="button" class="vb-sp-b">＋ 添词</button>' +
+      '</div>';
+  }
+
+  function renderEmpty() {
+    Array.prototype.forEach.call(map.querySelectorAll('.vb-empty'), function (n) { n.remove(); });
+    var count = {};
+    vol.words.forEach(function (w) { count[w.district] = (count[w.district] || 0) + 1; });
+    Array.prototype.forEach.call(map.querySelectorAll('.vb-region'), function (r) {
+      var d = r.getAttribute('data-d');
+      if (count[d]) return;
+      var name = (vol.districts.filter(function (x) { return x.id === d; })[0] || {}).name || '这一片';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'vb-empty';
+      b.setAttribute('data-add', d);
+      b.innerHTML = esc(name) + '还没有词<i>＋ 添一条</i>';
+      r.appendChild(b);
+    });
+  }
+
+  function refresh() { renderMeta(); renderSparse(); paintPins(); renderEmpty(); }
+  refresh();
 
   /* ---------- 拖动 ---------- */
   var drag = null;
@@ -116,6 +171,8 @@
   /* 打开词条用 click：pointerup 在触屏/键盘/自动化下不一定成对出现，
      click 是唯一"到处都发"的事件。拖拽结束靠上面的标记吞掉这一次 click。 */
   map.addEventListener('click', function (e) {
+    var empty = e.target.closest && e.target.closest('.vb-empty');
+    if (empty) { openAdd(empty.getAttribute('data-add')); return; }
     var pin = e.target.closest && e.target.closest('.vb-pin');
     if (!pin) return;
     if (suppressClick) { suppressClick = false; return; }
@@ -169,8 +226,58 @@
     if (e.target === this) this.classList.remove('on');
   });
 
+  /* ---------- 添词 ----------
+     建卷时只写了一条，也得有办法补 —— 否则唯一出路是删掉重建。
+     从空片区点进来，词就落在那一片；从卷头点进来，轮流摊开。 */
+  function parseWords(text) {
+    return String(text || '').split(/\r?\n/).map(function (l) { return l.trim(); })
+      .filter(Boolean).map(function (line) {
+        var p = line.split(/\s*[|\t]\s*|\s*[,，]\s*/);
+        return { w: (p[0] || '').trim(), meaning: (p[1] || '').trim(), example: (p[2] || '').trim() };
+      }).filter(function (w) { return w.w; });
+  }
+
+  function openAdd(districtId) {
+    var d = vol.districts.filter(function (x) { return x.id === districtId; })[0];
+    var modal = $('#modal'), card = $('#modalCard');
+    card.innerHTML =
+      '<div class="mc-head"><div><div class="mc-eyebrow">第 ' + vol.no + ' 卷 · ' + esc(vol.name) + '</div>' +
+      '<h2 class="mc-title" style="font-size:20px">' + (d ? '给「' + esc(d.name) + '」添词' : '给这一卷添词') + '</h2></div>' +
+      '<button class="mc-close" data-vb-close>×</button></div>' +
+      '<div class="vb-add">' +
+        '<textarea id="vbAddText" spellcheck="false" placeholder="茅子 | 厕所 | 问一声茅子在哪儿&#10;洋柿子 | 西红柿"></textarea>' +
+        '<p class="vb-add-hint">一行一个词：<code>词 | 释义 | 例句</code>，后两列可以省。' +
+          (d ? '添进来的词先落在「' + esc(d.name) + '」的空处，之后能拖。' : '会轮流摊到各个片区，之后能拖。') +
+          '重名的词会被跳过并告诉你。</p>' +
+        '<div class="vb-add-act"><button type="button" class="primary" id="vbAddSave">' +
+          (d ? '添进「' + esc(d.name) + '」' : '添进这一卷') + '</button>' +
+          '<span class="vb-add-err" id="vbAddErr"></span></div>' +
+      '</div>';
+    modal.classList.add('on');
+    var ta = $('#vbAddText');
+    if (ta) ta.focus();
+    var save = $('#vbAddSave');
+    if (save) save.addEventListener('click', function () {
+      var list = parseWords(($('#vbAddText') || {}).value);
+      if (!list.length) { $('#vbAddErr').textContent = '一行都没读到词：一行一个，词在前。'; return; }
+      var r = V.addWords(vol.id, list, d ? d.id : null);
+      if (!r || !r.ok) {
+        $('#vbAddErr').textContent = ((r && r.errors && r.errors[0]) || {}).msg || '没添进去';
+        return;
+      }
+      vol = V.current() || vol;
+      modal.classList.remove('on');
+      refresh();
+    });
+  }
+
   /* ---------- 按钮 ---------- */
   $('#vbSample').addEventListener('click', function () { location.href = 'recorder/'; });
+  $('#vbAdd').addEventListener('click', function () { openAdd(null); });
+  // 稀疏提示条是动态渲染的，按 id 直绑会在重渲染后失效 —— 委托到卷板
+  board.addEventListener('click', function (e) {
+    if (e.target.closest && e.target.closest('.vb-sp-b')) openAdd(null);
+  });
   $('#vbQuiz').addEventListener('click', function () {
     if (window.XZ.quiz) window.XZ.quiz.start(1);
     else alert('测验模块没有加载。');

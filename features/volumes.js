@@ -160,6 +160,62 @@
     });
   }
 
+  /* 给已经建好的一卷添词。
+     为什么必须有这个入口：建卷时只写了一条，那一卷就永远只有一条 ——
+     除了删掉重建，没有第二条路。而"先开卷、后添词"才是最自然的用法。
+
+     返回形状与 importJSON 一致（ok/errors），界面不用为它写第二套报错。
+     词 id 从"现有最大编号 + 1"续，不按数组长度算：将来支持删词时不会撞车。 */
+  function addWords(id, list, district) {
+    var db = read();
+    var vol = null;
+    for (var i = 0; i < db.list.length; i++) if (db.list[i].id === id) vol = db.list[i];
+    if (!vol) return { ok: false, errors: [{ code: 'no-volume', msg: '这一卷不在了：可能刚被删掉，回开一卷页看看' }] };
+
+    var exist = {};
+    vol.words.forEach(function (w) { exist[w.w] = 1; });
+    var take = [], dups = [];
+    (list || []).forEach(function (w) {
+      var t = String((w && w.w == null ? '' : w.w) || '').trim();
+      if (!t) return;
+      if (exist[t]) { if (dups.indexOf(t) < 0) dups.push(t); return; }
+      exist[t] = 1;
+      take.push({ w: t, meaning: String((w.meaning || '')).trim(), example: String((w.example || '')).trim() });
+    });
+
+    if (!take.length) {
+      return { ok: false, errors: [{ code: 'word-dup', msg: '一个词都没添：' +
+        (dups.length ? '「' + dups.slice(0, 3).join('」「') + '」这一卷已经有了' : '没读到词，一行一个') }] };
+    }
+    if (vol.words.length + take.length > MAX_WORDS) {
+      return { ok: false, errors: [{ code: 'words-too-many', msg: '添完会有 ' + (vol.words.length + take.length) +
+        ' 个词，超过 ' + MAX_WORDS + ' 个 —— 一卷是能被走完的规模，请拆成几卷' }] };
+    }
+
+    var maxNo = vol.words.reduce(function (m, w) {
+      var k = /w(\d+)$/.exec(String(w.id || ''));
+      return k ? Math.max(m, Number(k[1])) : m;
+    }, 0);
+    var dOk = district && vol.districts.some(function (d) { return d.id === district; });
+
+    take.forEach(function (w, k) {
+      var di = (vol.words.length + k) % (vol.districts.length || 1);
+      vol.words.push({
+        id: 'u' + vol.no + 'w' + (maxNo + k + 1),
+        w: w.w, meaning: w.meaning, example: w.example,
+        // 从某个片区的空白处点进来 → 全落在那一片；从卷头「添词」进来 → 轮流摊开
+        district: dOk ? district : ((vol.districts[di] || {}).id || null),
+        x: 0, y: 0
+      });
+    });
+    layoutWords(vol);
+
+    if (!write(db)) {
+      return { ok: false, errors: [{ code: 'quota', msg: '存不下了：浏览器本地存储已满，先删掉一卷再添' }] };
+    }
+    return { ok: true, added: take.length, total: vol.words.length, dups: dups, words: vol.words, volume: vol };
+  }
+
   function update(id, patch) {
     // 同一条边界：改词表也要守，否则 create 守住了、update 又能把它撑爆
     if (patch && Array.isArray(patch.words) && patch.words.length > MAX_WORDS) return null;
@@ -411,6 +467,7 @@
     activeId: activeId,
     isCustom: isCustom,
     create: create,
+    addWords: addWords,
     update: update,
     remove: remove,
     activate: activate,

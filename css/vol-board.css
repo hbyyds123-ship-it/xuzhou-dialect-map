@@ -110,6 +110,55 @@ body.vol-custom { overflow: auto !important; }
 
 .vb-tip { margin: 10px 0 0; font-size: 11px; color: var(--ink-2); letter-spacing: .04em; }
 
+/* ---------- 稀疏状态 ----------
+   一两个词的卷，图上就是一个点。这里先说清"不是坏了"，再给添词的入口。 */
+.vb-sparse {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  margin-top: 16px; padding: 10px 14px;
+  border: 1px solid var(--rule); border-left: 3px solid var(--zhu);
+  background: rgba(166, 59, 42, .035);
+}
+.vb-sparse p { margin: 0; flex: 1 1 320px; font-size: 12.5px; line-height: 1.85; color: var(--ink); letter-spacing: .02em; }
+.vb-sparse p b { font-weight: 400; color: var(--zhu); font-size: 14px; padding: 0 2px; }
+.vb-sparse p em { font-style: normal; color: var(--ink-2); border-bottom: 1px dotted var(--rule-strong); }
+.vb-sp-b {
+  font-family: var(--serif); font-size: 12.5px; letter-spacing: .04em;
+  padding: 6px 14px; border: 1px solid var(--rule-strong);
+  background: transparent; color: var(--ink); cursor: pointer;
+}
+.vb-sp-b:hover { background: var(--ink); color: var(--paper); }
+
+/* 空片区：一块空白最容易让人以为"这里坏了"，所以直接写成一句可点的话 */
+.vb-empty {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 9px 14px; border: 1px dashed var(--rule-strong); background: rgba(251, 247, 238, .5);
+  font-family: var(--serif); font-size: 12px; letter-spacing: .06em; color: var(--ink-2);
+  cursor: pointer; white-space: nowrap;
+}
+.vb-empty i { font-style: normal; color: var(--zhu); }
+.vb-empty:hover { border-color: var(--zhu); border-style: solid; color: var(--zhu); background: rgba(166, 59, 42, .05); }
+
+/* ---------- 添词弹层 ---------- */
+.vb-add { padding-top: 4px; }
+.vb-add textarea {
+  width: 100%; min-height: 132px; resize: vertical;
+  padding: 10px; font-family: var(--mono); font-size: 12.5px; line-height: 1.85;
+  color: var(--ink); background: var(--paper-3);
+  border: 1px solid var(--rule-strong);
+}
+.vb-add textarea:focus { outline: none; border-color: var(--zhu); }
+.vb-add-hint { margin: 8px 0 0; font-size: 11.5px; line-height: 1.9; color: var(--ink-2); }
+.vb-add-hint code { font-family: var(--mono); font-size: 11px; background: var(--paper-2); padding: 1px 4px; }
+.vb-add-act { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.vb-add-act button {
+  font-family: var(--serif); font-size: 13px; letter-spacing: .04em;
+  padding: 8px 18px; border: 1px solid var(--rule-strong); background: transparent; color: var(--ink); cursor: pointer;
+}
+.vb-add-act button.primary { background: var(--zhu); border-color: var(--zhu); color: var(--paper); }
+.vb-add-act button.primary:hover { background: #8E3223; border-color: #8E3223; }
+.vb-add-err { font-size: 12px; color: var(--zhu); }
+
 /* ---------- 词条卡 ---------- */
 .vb-card { padding-top: 4px; }
 .vb-row { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }

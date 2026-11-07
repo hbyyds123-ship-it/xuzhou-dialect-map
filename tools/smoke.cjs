@@ -202,6 +202,104 @@ function check(name, ok, extra) {
     check('区县面板有「这个区的方言词」且每行带动作按钮', false, '找不到 鼓楼区 的 chip');
   }
 
+  /* ⑧ 方言点面板：从「读」变成「能用」
+     旧版 20 个点里有 10 个连一个能点的东西都没有 —— 点开只能读完走人。
+     断言四件事：引例词带动作、听这一带给出状态、小游戏写明是哪个区的、
+     同类的点列出来。 */
+  await page.goto(base + '#/s/peixian', { waitUntil: 'load' });
+  await page.waitForTimeout(1200);
+  const sp = await page.evaluate(() => {
+    const b = document.getElementById('panelBody');
+    const heads = [...b.querySelectorAll('.p-sec h3')].map((h) => h.textContent.trim());
+    const acts = [...b.querySelectorAll('.sq-btn')].map((x) => x.textContent.trim());
+    const word = (b.querySelector('.spot-quote .q-w') || {}).textContent || '';
+    return {
+      heads, acts, word,
+      bandBtn: !!(b.querySelector('.band-btn')),
+      bandNone: (b.querySelector('.band-none') || {}).textContent || '',
+      quizHead: heads.find((h) => h.indexOf('小游戏') >= 0) || '',
+      kin: b.querySelectorAll('.p-sec .spot-row').length
+    };
+  });
+  check('方言点面板有「听这一带」与「这地方的一个说法」',
+    sp.heads.indexOf('听这一带') >= 0 && sp.heads.indexOf('这地方的一个说法') >= 0,
+    '小节=' + JSON.stringify(sp.heads));
+  check('引例词卡片带「看这个词 / ＋ 录一条」动作',
+    sp.acts.some((a) => a.indexOf('看这个词') >= 0) && sp.acts.some((a) => a.indexOf('＋ 录一条') >= 0),
+    JSON.stringify(sp.acts));
+  check('没录音的词给合成兜底且说明清楚',
+    sp.acts.some((a) => a.indexOf('听个大概') >= 0) && /合成/.test((await page.evaluate(() => (document.querySelector('.sq-note') || {}).textContent || ''))),
+    JSON.stringify(sp.acts));
+  check('没有真人录音时「听这一带」直说空白而不是假装有按钮',
+    !sp.bandBtn && /还没有一条真人录音/.test(sp.bandNone) && /沛县/.test(sp.bandNone),
+    sp.bandNone.slice(0, 60));
+  check('引例词就是这条方言点的词', sp.word.indexOf('恁') >= 0, '词面=' + sp.word.trim());
+  check('同类的其他点列出来了（曲艺/方言词各成线）', sp.kin >= 3, '同类行数=' + sp.kin);
+
+  // 小游戏标题必须带区名：同一个区的点进去都是同一关，「方言小游戏」是谎话
+  await page.goto(base + '#/s/qinshu', { waitUntil: 'load' });
+  await page.waitForTimeout(900);
+  const qh = await page.evaluate(() => {
+    const b = document.getElementById('panelBody');
+    return ([...b.querySelectorAll('.p-sec h3')].map((h) => h.textContent.trim()))
+      .find((h) => h.indexOf('小游戏') >= 0) || '';
+  });
+  check('小游戏标题写明是哪个区的（不是这个点专属）', qh === '鼓楼区的小游戏', '标题=' + JSON.stringify(qh));
+
+  /* ⑨ 「听这一带」连播：塞两条假录音 + 假 Audio，只测排队顺序与按钮状态 */
+  await page.evaluate(() => {
+    localStorage.setItem('xzdt.sample.v1', JSON.stringify({
+      version: 1, updatedAt: Date.now(), count: 2,
+      words: {
+        lagua: { clipId: 'c1', saying: '拉呱', speaker: '奶奶', gen: 3, clips: [{ clipId: 'c1' }] },
+        zir: { clipId: 'c2', saying: '恣儿', speaker: '爷爷', gen: 3, clips: [{ clipId: 'c2' }] }
+      }
+    }));
+  });
+  await page.goto(base + '?band=1#/s/qinshu', { waitUntil: 'load' });   // 换 URL 才会整页重载，索引才会重读
+  await page.waitForTimeout(1200);
+  const bandState = await page.evaluate(() => {
+    const b = document.getElementById('hearBand');
+    if (!b) return { err: '没有连播按钮' };
+    window.__played = [];
+    window.Audio = function (u) {
+      const o = { u, paused: false };
+      o.play = function () { window.__played.push(u); setTimeout(() => { if (o.onended) o.onended(); }, 120); return Promise.resolve(); };
+      o.pause = function () { o.paused = true; };
+      return o;
+    };
+    window.XZ.sample.urlFor = (id) => Promise.resolve('fake://' + id);
+    b.click();
+    return { clicked: true };
+  });
+  await page.waitForTimeout(700);
+  const bandDone = await page.evaluate(() => {
+    const b = document.getElementById('hearBand');
+    return {
+      played: (window.__played || []).slice(),
+      end: b ? b.textContent.trim() : '',
+      playing: b ? b.classList.contains('playing') : null
+    };
+  });
+  check('有录音的区给「连着听」按钮且计数正确',
+    bandState.clicked && /2 条/.test((await page.evaluate(() => (document.getElementById('hearBand') || { getAttribute: () => '' }).getAttribute('data-label') || ''))),
+    JSON.stringify(bandState));
+  /* 期望顺序 = 词表里这一区已录的词的顺序（app.js 就是这么取的，别按想象写死） */
+  const expect = await page.evaluate(() =>
+    window.ATLAS.words.filter((w) => ['lagua', 'zir'].indexOf(w.id) >= 0).map((w) => w.id));
+  check('连播按词表顺序一条接一条且播完自动复位',
+    bandDone.played.length === 2 && bandDone.played[0] === 'fake://' + expect[0] && bandDone.played[1] === 'fake://' + expect[1]
+      && /▶ 连着听/.test(bandDone.end) && !bandDone.playing,
+    JSON.stringify({ played: bandDone.played, expect }));
+  // 播完后再点一轮，验证第二次能重新开始（不是一次性按钮）
+  await page.evaluate(() => { document.getElementById('hearBand').click(); });
+  await page.waitForTimeout(500);
+  const replay = await page.evaluate(() => (window.__played || []).length);
+  check('连播按钮可以反复点', replay >= 3, '第二轮已播=' + replay);
+
+  // 清掉假录音，别污染后续/其他断言
+  await page.evaluate(() => localStorage.removeItem('xzdt.sample.v1'));
+
   await browser.close();
   srv.close();
 

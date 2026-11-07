@@ -721,3 +721,31 @@ body::after {
 .wr-act.has { color: var(--zhu); border-color: var(--zhu); }
 .wr-act:hover { background: var(--ink); color: var(--paper); }
 .wr-act.has:hover { background: var(--zhu); color: var(--paper); }
+
+/* ---------- 方言点面板：能听、能录、能接着走 ---------- */
+/* 「听这一带」：整条是按钮，播的时候按钮自己变成「停（3/5）· 恣儿」 */
+.band-btn {
+  display: block; width: 100%; text-align: left;
+  font: inherit; font-size: 13px; letter-spacing: .04em; line-height: 1.6;
+  padding: 9px 12px; cursor: pointer;
+  border: 1px solid var(--rule-strong); background: var(--paper-3); color: var(--ink);
+}
+.band-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.band-btn.playing { border-color: var(--zhu); color: var(--zhu); }
+.band-btn.playing:hover { background: var(--zhu); color: var(--paper); border-color: var(--zhu); }
+.band-note { margin: 8px 0 0; font-size: 11.5px; line-height: 1.8; color: var(--ink-2); }
+.band-none {
+  margin: 0; padding: 9px 11px; border: 1px dashed var(--rule-strong);
+  font-size: 11.5px; line-height: 1.85; color: var(--ink-2);
+}
+/* 引例词：词 + 释义 + 一排各自只做一件事的按钮 */
+.spot-quote .sq-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.sq-btn {
+  font: inherit; font-size: 11.5px; padding: 4px 9px; line-height: 1.5;
+  border: 1px solid var(--rule-strong); background: transparent; color: var(--ink);
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.sq-btn.primary { border-color: var(--zhu); color: var(--zhu); }
+.sq-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.sq-btn.primary:hover { background: var(--zhu); color: var(--paper); border-color: var(--zhu); }
+.spot-quote .sq-note { margin-top: 9px; font-size: 11px; line-height: 1.75; color: var(--ink-2); }

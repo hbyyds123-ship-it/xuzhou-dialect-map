@@ -538,6 +538,7 @@
 
   function openPanel() { panel.classList.add('on'); }
   function closePanel() {
+    bandStop();                       // 关面板就别让「听这一带」还在响
     panel.classList.remove('on');
     currentSpot = null;
     pins.forEach(p => p.el.classList.remove('act'));
@@ -578,6 +579,7 @@
   }
 
   function renderDistrictPanel(name) {
+    bandStop();
     const d = districtByName[name];
     const rec = districtMap[name];
     if (!d) return;
@@ -677,13 +679,221 @@
     openPanel();
   }
 
+  /* ---------------------- 方言点：从"读"变成"能用" ----------------------
+     这一页此前是展品：一张图、一段介绍、一个纯文本的引例词 —— 20 个点里
+     有 10 个连一个能点的地方都没有，点开等于读完一段说明就走。数据里其实
+     什么都有（引例词、拼音、释义、区县关卡、同类的点），缺的只是把已有的
+     能力接到页面上：
+
+       · 引例词能听（真人 → 范本音 → 合成，来源必须写在页面上）
+       · 能进词条页看例句与三代对照，能就地录
+       · 「听这一带」把这一区已有的真人录音一条接一条播完
+       · 页底顺着同一类看到别处的点，一条线读下去
+     ------------------------------------------------------------------ */
+
+  /* 合成音只作兜底，且必须明说它是普通话合成 —— 把合成当范本学，
+     学的就是普通话。 */
+  const SYNTH = {
+    speak: function (text, rate) {
+      try {
+        if (!('speechSynthesis' in window)) return false;
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'zh-CN';
+        u.rate = rate || 0.8;
+        u.pitch = 0.92;
+        window.speechSynthesis.speak(u);
+        return true;
+      } catch (e) { return false; }
+    }
+  };
+
+  function dialectName() {
+    return (window.XZ && window.XZ.volume && window.XZ.volume.dialect) || '徐州话';
+  }
+
+  /* 「听这一带」的连播器。
+     用 Audio 的 ended 事件排队 —— sample.play() 的 Promise 只保证"开播了"，
+     照它连播会让几条录音叠在一起响。这里一次只放一条，播完接下一條。 */
+  const band = { audio: null, ids: [], i: 0, stop: true, btn: null };
+
+  function bandStop() {
+    band.stop = true;
+    if (band.audio) { try { band.audio.pause(); } catch (e) {} band.audio = null; }
+    if (band.btn) {
+      band.btn.textContent = band.btn.getAttribute('data-label') || '▶ 连着听';
+      band.btn.classList.remove('playing');
+      band.btn = null;
+    }
+    band.ids = []; band.i = 0;
+  }
+
+  function bandPlay(ids, labels, btn) {
+    bandStop();
+    band.stop = false;
+    band.ids = ids; band.i = 0; band.btn = btn;
+    btn.classList.add('playing');
+    const total = ids.length;
+
+    function step() {
+      if (band.stop || !band.btn) return;
+      if (band.i >= total) { bandStop(); return; }
+      const at = band.i;
+      btn.textContent = '■ 停（' + (at + 1) + '/' + total + '）· ' + labels[at];
+      window.XZ.sample.urlFor(ids[at]).then(function (u) {
+        if (band.stop) return;
+        const a = new Audio(u);
+        let settled = false;
+        function once(fn) {
+          return function () { if (settled) return; settled = true; fn(); };
+        }
+        const next = once(function () { band.audio = null; band.i++; step(); });
+        const skip = once(function () { band.audio = null; band.i++; step(); });
+        band.audio = a;
+        a.onended = next;
+        a.onerror = skip;
+        let p;
+        try { p = a.play(); } catch (e) { skip(); return; }
+        if (p && p.catch) p.catch(skip);
+      }, function () { band.i++; step(); });
+    }
+
+    step();
+  }
+
+  /** 这一区已经有真人录音的词（按词表顺序），供连播与计数用 */
+  function districtRecorded(d) {
+    const S = window.XZ && window.XZ.sample;
+    if (!S) return [];
+    return WORDS.filter(function (w) { return w.d === d.name && S.has(w.id); });
+  }
+
+  /**
+   * 方言点的引例词：从一行灰字变成一条能听、能进、能录的说法。
+   * 有几个音源就给几个按钮，各自只做一件事 —— 不要一个按钮背后
+   * 偷偷换音源，那等于骗人。
+   */
+  function spotWordBlock(d, w) {
+    if (!w) return '';
+    const S = window.XZ && window.XZ.sample;
+    const R = window.XZ && window.XZ.refs;
+    const real = !!(S && S.has(w.id));
+    const ref = !!(R && R.has(w.id));
+    const canSynth = ('speechSynthesis' in window);
+
+    let acts = '';
+    if (real) acts += '<button class="sq-btn primary" data-hear="' + esc(w.id) + '">▶ 听你家的录音</button>';
+    if (ref) acts += '<button class="sq-btn' + (real ? '' : ' primary') + '" data-heref="' + esc(w.id) + '">♪ 听范本音</button>';
+    if (!real && !ref && canSynth) acts += '<button class="sq-btn primary" data-synth="' + esc(w.id) + '">▶ 听个大概</button>';
+    acts += '<a class="sq-btn" href="#/w/' + encodeURIComponent(w.id) + '">看这个词 ›</a>';
+    acts += '<a class="sq-btn" href="recorder/#p=' + encodeURIComponent(w.id) + '">＋ 录一条</a>';
+
+    const note = real
+      ? '你家的录音，就在这台电脑上，不联网。'
+      : ref
+        ? '范本音是请人念过的教学录音，不是合成的。'
+        : canSynth
+          ? '这个词还没有人录过 —— 「听个大概」是普通话合成，只能听个意思，别当范本。'
+          : '这个词还没有人录过，这台机器也没有可用的语音合成。';
+
+    return '<div class="p-sec"><h3>这地方的一个说法</h3>' +
+      '<p class="p-desc">方言点不是一块碑 —— 这个说法还活在这儿。先听它，再录你自己那一句。</p>' +
+      '<div class="quote spot-quote">' +
+      '<div class="q-w">' + esc(w.w) +
+        (w.p ? '<span class="q-p">' + esc(w.p) + '</span>' : '') + '</div>' +
+      '<div class="q-m">' + esc(w.m || '') + '</div>' +
+      '<div class="sq-acts">' + acts + '</div>' +
+      '<div class="sq-note">' + esc(note) + '</div>' +
+      '</div></div>';
+  }
+
+  /** 听这一带：有录音就连播，没有就把缺口指出来 */
+  function bandBlock(d) {
+    const list = districtRecorded(d);
+    if (list.length) {
+      return '<div class="p-sec"><h3>听这一带</h3>' +
+        '<button class="band-btn" id="hearBand" data-count="' + list.length + '"' +
+        ' data-label="▶ 连着听 ' + esc(d.name) + ' 的 ' + list.length + ' 条">' +
+        '▶ 连着听 ' + esc(d.name) + ' 的 ' + list.length + ' 条</button>' +
+        '<p class="band-note">都是住在这儿的人自己录的，一条接一条播完为止；再点一下就停。</p></div>';
+    }
+    return '<div class="p-sec"><h3>听这一带</h3>' +
+      '<p class="band-none">' + esc(d.name) + '还没有一条真人录音 —— 这一格的空白正好留给你。' +
+      '下面那个说法，你录一条，它就是这一带的第一条。</p></div>';
+  }
+
+  /** 同一类的其他点：让「研究一条线」在页面上走得通 */
+  function sameCategoryBlock(s) {
+    const kin = SPOTS.filter(function (o) {
+      return o.id !== s.id && o.categoryKey === s.categoryKey;
+    }).slice(0, 4);
+    if (!kin.length) return '';
+    return '<div class="p-sec"><h3>同一类的其他点</h3>' +
+      '<p class="p-desc" style="margin-bottom:8px">' + esc(s.category) + '这一类还有这些地方，顺着看下去是一条线。</p>' +
+      kin.map(function (o) {
+        return '<div class="spot-row" data-spot="' + esc(o.id) + '">' +
+          '<img src="' + esc(o.thumb) + '" alt="">' +
+          '<div style="min-width:0"><div class="sr-t">' + esc(o.name) + '</div>' +
+          '<div class="sr-s">' + esc(o.district) + ' · ' + esc(o.tag) + '</div></div>' +
+          '<span class="sr-c" style="color:' + (CAT_COLOR[o.category] || '#e8b54b') + '">' +
+          esc(o.category) + '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  function wireSpotActions(w) {
+    const S = window.XZ && window.XZ.sample;
+    $$('[data-hear]', panelBody).forEach(function (b) {
+      b.addEventListener('click', function () {
+        const was = b.textContent;
+        b.textContent = '…';
+        (S ? S.play(w.id) : Promise.resolve(false)).then(function (ok) {
+          b.textContent = ok ? '▶ 再听一遍' : was;
+          if (!ok) toast('这条录音没能播出来。');
+        });
+      });
+    });
+    $$('[data-heref]', panelBody).forEach(function (b) {
+      b.addEventListener('click', function () {
+        const was = b.textContent;
+        b.textContent = '…';
+        window.XZ.refs.play(w.id).then(function (ok) {
+          b.textContent = ok ? '♪ 再听' : was;
+          if (!ok) toast('范本音没能播出来。');
+        });
+      });
+    });
+    $$('[data-synth]', panelBody).forEach(function (b) {
+      b.addEventListener('click', function () {
+        const ok = SYNTH.speak(w.w);
+        const n = $('.sq-note', panelBody);
+        if (!ok) { toast('这台机器没有可用的语音合成。'); return; }
+        if (n) n.textContent = '正在播普通话合成音 —— 不是' + dialectName() + '，听个意思就好。';
+      });
+    });
+  }
+
+  function wireBand(d) {
+    const btn = $('#hearBand', panelBody);
+    if (!btn) return;
+    const list = districtRecorded(d);
+    const ids = list.map(function (w) { return w.id; });
+    const labels = list.map(function (w) { return w.w; });
+    btn.addEventListener('click', function () {
+      if (!band.stop && band.btn === btn) { bandStop(); return; }
+      bandPlay(ids, labels, btn);
+    });
+  }
+
   function renderSpotPanel(id) {
+    bandStop();
     const s = spotById[id];
     if (!s) return;
     const d = districtByName[s.district] || { name: s.district };
     const color = CAT_COLOR[s.category] || '#e8b54b';
-    const wordRec = WORDS.find(w => w.w === s.word);
-    const pid = wordRec ? wordRec.p : '';
+    /* 用 wordIds[0] 取词条：按词面 find 会在同形词上抓错人 */
+    const wordRec = s.wordIds && s.wordIds.length
+      ? WORDS.find(function (w) { return w.id === s.wordIds[0]; })
+      : null;
 
     const lv = SEL.levelOfDistrict(s.districtId);
     const st = SEL.spotState(id);
@@ -691,14 +901,19 @@
     const lvWords = lv ? SEL.levelWords(lv.id) : [];
     const lvDone = lv ? SEL.isLevelDone(lv.id) : false;
 
+    /* 标题必须写清是「哪个区的」小游戏：同一个区的两个点进去是同一关，
+       写「方言小游戏」会让人以为这是这个方言点的专题。 */
     const quizBlock = lv ? (
-      '<div class="p-sec"><h3>方言小游戏</h3>' +
+      '<div class="p-sec"><h3>' + esc(d.name) + '的小游戏</h3>' +
       '<button class="quiz-entry" data-quiz="' + lv.id + '" data-state="' + st + '">' +
       '<span class="qe-ic">' + (lvDone ? '✓' : '▶') + '</span>' +
       '<span class="qe-txt"><b>第 ' + lv.id + ' 关 · ' + esc(lv.name) + '</b>' +
       '<i>' + lvWords.length + ' 个词条 · 听音辨义 · ' + ST_LABEL[st] + '</i></span>' +
       '<span class="qe-go">' + (lvDone ? '重玩' : '开始') + ' ›</span>' +
-      '</button></div>'
+      '</button>' +
+      '<p class="p-desc" style="margin-top:8px">这是整个' + esc(d.name) +
+      '的听辨关卡，不是这个点专属的 —— 这个区里别的点进去，也是这一关。</p>' +
+      '</div>'
     ) : '';
 
     panelBody.innerHTML =
@@ -708,14 +923,14 @@
       '<div class="p-hero-title"><h2>' + esc(s.name) + '</h2>' +
       '<div class="meta" style="--c:' + color + '">' + esc(d.name) + ' · ' + esc(s.tag) + '</div></div>' +
       '</div>' +
+      bandBlock(d) +
       '<div class="p-sec"><h3>方言点介绍</h3>' +
       '<p class="p-desc">' + esc(s.desc) + '</p>' +
-      '<div class="quote"><div class="q-w">' + esc(s.word) +
-      (pid ? '<span class="q-p">' + esc(pid) + '</span>' : '') +
-      '</div><div class="q-m">' + esc(s.meaning) + '</div></div>' +
       '</div>' +
+      spotWordBlock(d, wordRec) +
       quizBlock +
       sceneSection(s.districtId) +
+      sameCategoryBlock(s) +
       '<div class="p-sec"><h3>延伸阅读</h3>' +
       '<a class="link-btn" href="' + esc(safeUrl(s.link)) + '" target="_blank" rel="noopener">' +
       '<span>' + esc(s.linkLabel) + '</span>' +
@@ -723,6 +938,12 @@
       '</a>' +
       '<button class="btn-ghost" data-jump="' + esc(s.district) + '">查看 ' + esc(d.name) + ' 全部方言点</button>' +
       '</div>';
+
+    $$('.spot-row', panelBody).forEach(function (r) {
+      r.addEventListener('click', function () { openSpot(r.dataset.spot, true); });
+    });
+    wireBand(d);
+    wireSpotActions(wordRec);
 
     $$('[data-jump]', panelBody).forEach(function (b) {
       b.addEventListener('click', function () {
@@ -806,6 +1027,7 @@
   }
 
   function renderWordPanel(w) {
+    bandStop();
     const color = '#e8b54b';
     const spots = SPOTS.filter(s => s.word === w.w);
     let link = '';

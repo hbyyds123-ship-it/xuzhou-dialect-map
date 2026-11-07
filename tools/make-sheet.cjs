@@ -72,27 +72,16 @@ function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
 function renderHtml(atlas, rows, sections) {
   const total = rows.length;
-  const firstYear = 1930;
-
-  const fill = [
-    ['怎么称呼', '姓 ____ ，叫 ____ 就行'],
-    ['哪年生', '______ 年（' + firstYear + ' 年前后都行）'],
-    ['老家在哪', '______ 区/县 ______ 镇/村'],
-    ['在那儿住了', '______ 年；后来搬过 ______ 次家'],
-    ['平常说什么', '在家说方言（　　）　说普通话（　　）　两样都说（　　）']
-  ].map((r) => (
-    '<div class="f-row"><span class="f-k">' + esc(r[0]) + '</span>' +
-    '<span class="f-v">' + esc(r[1]) + '</span></div>'
-  )).join('');
 
   const how = [
     ['一条录一段', '按 01、02 的顺序来。念完一条停一下，再按停录音。'],
-    ['怎么念', '先看右边「意思」，再念词，最后把「例句」整句念一遍 —— 例句里有这个词，听着最自然。'],
+    ['怎么念', '先看「意思」，再念词，最后把「例句」整句念一遍 —— 例句里有这个词，听着最自然。'],
     ['不认识就跳过', '不认识的、你家不这么说的，直接跳，在「念过」那格划一道。<b>空着比编一条有用</b>。'],
     ['用什么录', '手机自带的录音机就行，不用装软件。找个安静屋子，嘴离手机一拃远。'],
+    ['念多少', '一次念 20 条左右，分两三次录完也行，<b>编号别断</b>。一个片区的话，最好请这个片区的人念 —— 同一个词，隔着一条河说法就可能不一样。'],
     ['怎么发回来', '微信发<b>「文件」</b>，别发语音消息 —— 语音消息存不下来，也没法导进软件。']
   ].map((r) => (
-    '<div class="h-row"><span class="h-k">' + esc(r[0]) + '</span>' +
+    '<div class="h-item"><span class="h-k">' + esc(r[0]) + '</span>' +
     '<span class="h-v">' + r[1] + '</span></div>'
   )).join('');
 
@@ -133,17 +122,12 @@ function renderHtml(atlas, rows, sections) {
   '<p class="lede">这一卷收了 <b>' + total + '</b> 条徐州说法，分 <b>' + sections.length +
     '</b> 个片区。下面是全部 ' + total + ' 条 —— 一条录一段，一条就是一个文件。</p>' +
 
-  '<div class="cov-grid">' +
-    '<div class="cov-col"><h3>这张纸是谁念的</h3>' + fill + '</div>' +
-    '<div class="cov-col"><h3>怎么念</h3>' + how + '</div>' +
-  '</div>' +
+  '<section class="how"><h3>怎么念</h3><div class="how-list">' + how + '</div></section>' +
 
   '<div class="cov-note">' +
     '<div class="n-line"><b>音频格式</b>：mp3、m4a、wav、aac、ogg 都收。' +
       '手机录音机出来的一般是 m4a，<b>不用转格式，也不用改名</b> —— 软件按文件名里的数字对（01、02…），' +
       '「新录音 1」「录音_02」也认。整批实在对不上时会按录音先后顺序对，导入时会明确告诉你是按顺序对的。</div>' +
-    '<div class="n-line"><b>要念多少</b>：一次念 20 条左右就行，分两三次录完也可以，编号别断。' +
-      '一个片区的话，最好请这个片区的人念 —— 同一个词，隔着一条河说法就可能不一样。</div>' +
   '</div>' +
 '</header>' +
 
@@ -197,11 +181,17 @@ h1 { font-size: 27pt; line-height: 1.35; font-weight: 600; letter-spacing: .04em
 .cov-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 9mm; }
 .cov-col h3 { font-size: 10pt; letter-spacing: .16em; color: #8f2f27; font-weight: 600;
   margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid #d8cfbe; }
-.f-row, .h-row { display: flex; gap: 3mm; padding: 1.6mm 0; border-bottom: 1px dotted #ded5c4; }
-.f-k { flex: 0 0 22mm; font-size: 10pt; color: #6b6157; }
-.f-v { flex: 1; font-size: 10.5pt; }
-.h-k { flex: 0 0 24mm; font-size: 9.5pt; color: #8f2f27; letter-spacing: .04em; }
-.h-v { flex: 1; font-size: 10pt; line-height: 1.7; }
+
+/* 「怎么念」六格：两列，每格上标签下正文 */
+.how { margin: 0 0 7mm; }
+.how h3 { font-size: 10pt; letter-spacing: .16em; color: #8f2f27; font-weight: 600;
+  margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 1px solid #d8cfbe; }
+.how-list { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm 9mm; }
+.h-item { padding-top: 2mm; border-top: 1px solid #e2d9c8;
+  page-break-inside: avoid; }
+.h-k { display: block; font-size: 9.5pt; color: #8f2f27; letter-spacing: .06em;
+  margin-bottom: 1mm; }
+.h-v { display: block; font-size: 10.5pt; line-height: 1.75; }
 
 .cov-note { margin-top: 8mm; padding: 4mm 5mm; background: #f0e9db;
   border-left: 3px solid #8f2f27; }

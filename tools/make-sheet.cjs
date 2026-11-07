@@ -70,15 +70,87 @@ function esc(s) {
 
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
+/**
+ * 词条 id → [普通话里的说法, 普通话例句]
+ *
+ * 为什么要有这一层：这张纸不是只给徐州人念的。如果条目直接写「管」「恣儿」，
+ * 外地人不知道在问什么，也没法答 —— 只有普通话的寻常词，才能拿去问任何一个县、
+ * 任何一个村：「这个话，你们那儿怎么说？」方言说法退成一行灰字，当作已经答过的样板。
+ */
+const GLOSS = {
+  guan: ['行', '这事行不行？'],
+  zir: ['舒服', '今天玩得真舒服。'],
+  lagua: ['聊天', '咱俩在这儿聊会儿天。'],
+  shangwu: ['中午', '中午吃的什么？'],
+  bai: ['别', '你别动那个，挺贵的。'],
+  yelai: ['昨天', '昨天下了一场大雨。'],
+  ganming: ['明天', '明天再去你家。'],
+  jiazou: ['回家', '天黑了，回家吧。'],
+  gengen: ['旁边', '在百货大楼旁边等你。'],
+  renn: ['到处', '东西到处都找不着。'],
+  daocai: ['夹菜', '来来来，别客气，夹菜！'],
+  hutu: ['玉米面粥', '早上喝碗玉米面粥，顶饱。'],
+  yangshi: ['西红柿', '西红柿炒鸡蛋最下饭。'],
+  maozi: ['厕所', '问一声厕所在哪儿。'],
+  wudang: ['屋子中间', '别站在屋子中间挡着道。'],
+  cimao: ['差劲', '这东西太差劲了。'],
+  dabashou: ['帮忙', '来帮个忙，抬一下桌子。'],
+  deyouyi: ['故意', '他故意这么干的。'],
+  mazhan: ['马上', '你等会儿，马上就来。'],
+  haile: ['多得很', '赶集的人多得很。'],
+  tingting: ['蜻蜓', '河边蜻蜓飞得低。'],
+  shounie: ['手帕', '擦擦汗，给你手帕。'],
+  jueya: ['脚', '脚冻得没知觉了。'],
+  gebai: ['膝盖', '摔了一跤，磕着膝盖了。'],
+  maoge: ['硬币', '兜里就剩两个硬币。'],
+  shenme: ['什么东西', '你说的什么东西？'],
+  mashang: ['一会儿', '你坐那儿，一会儿就好。'],
+  genala: ['在哪儿', '百货大楼在哪儿？'],
+  tiliu: ['很圆', '这馒头蒸得很圆。'],
+  yangxin: ['得意', '看他那得意的劲儿。'],
+  yerang: ['挨骂', '作业没写，挨了一顿骂。'],
+  samo: ['张望', '你张望张望，人来了没？'],
+  mazhua: ['手忙脚乱', '一听要考试，他立马手忙脚乱。'],
+  kechen: ['难看', '这衣裳穿出去有点难看。'],
+  deji: ['管用', '这药真管用，喝两回就好了。'],
+  laobizi: ['非常多', '夜市上东西非常多。'],
+  yibengzi: ['一阵子', '等了一阵子他才来。'],
+  yizi: ['肥皂', '拿块肥皂把手洗洗。'],
+  shiduo: ['收拾', '把屋里收拾收拾，来客了。'],
+  waini: ['糟了', '这下糟了，钥匙锁屋里了。'],
+  zhagu: ['治病', '赶紧去医院治治。'],
+  hulielie: ['胡说', '你别胡说，没那回事。'],
+  gudao: ['摆弄', '一上午就摆弄那个收音机。'],
+  zoume: ['干什么', '你干什么去？这么急。'],
+  nen: ['你们', '你们都来了？快坐。'],
+  an: ['我们', '我们家就在这条街上。'],
+  guada: ['闲聊', '他俩在门口闲聊半天了。'],
+  xihan: ['喜欢', '奶奶最喜欢这小孙子。'],
+  bandiaozi: ['不靠谱', '他是个不靠谱的，别指望他。'],
+  babuneng: ['巴不得', '巴不得早点下班回家。'],
+  puleng: ['扑腾', '鱼在盆里直扑腾。'],
+  xiexie: ['很', '今天很冷，多穿点。'],
+  ladao: ['算了', '算了，别争了。'],
+  shidehuang: ['累', '走了一天，累。']
+};
+
+/** 没有对照的词（用户自己开的卷）就退回词条自带的释义与例句 */
+function glossOf(w) {
+  const g = GLOSS[w.id];
+  if (g) return g;
+  const m = String(w.meaning || '').split(/[、，,；;]/)[0].trim();
+  return [m || w.w, w.example || ''];
+}
+
 function renderHtml(atlas, rows, sections) {
   const total = rows.length;
 
   const how = [
     ['一条录一段', '按 01、02 的顺序来。念完一条停一下，再按停录音。'],
-    ['怎么念', '先看「意思」，再念词，最后把「例句」整句念一遍 —— 例句里有这个词，听着最自然。'],
-    ['不认识就跳过', '不认识的、你家不这么说的，直接跳，在「念过」那格划一道。<b>空着比编一条有用</b>。'],
+    ['怎么念', '看左边「问的是」那个普通话词，用家乡话说出它；再用家乡话把右边那句例句说一遍。<b>不是念普通话，是念你们那儿的话</b>。'],
+    ['不会就跳过', '你那儿不这么说、或者没这东西，直接跳，在「念过」划一道。<b>空着比编一条有用</b>。'],
     ['用什么录', '手机自带的录音机就行，不用装软件。找个安静屋子，嘴离手机一拃远。'],
-    ['念多少', '一次念 20 条左右，分两三次录完也行，<b>编号别断</b>。一个片区的话，最好请这个片区的人念 —— 同一个词，隔着一条河说法就可能不一样。'],
+    ['念多少', '一次念 20 条左右，分两三次录完也行，<b>编号别断</b>。'],
     ['怎么发回来', '微信发<b>「文件」</b>，别发语音消息 —— 语音消息存不下来，也没法导进软件。']
   ].map((r) => (
     '<div class="h-item"><span class="h-k">' + esc(r[0]) + '</span>' +
@@ -87,16 +159,17 @@ function renderHtml(atlas, rows, sections) {
 
   const sectionBlocks = sections.map((s) => {
     const list = rows.filter((r) => r.no >= s.from && r.no <= s.to);
-    const body = list.map((w) => (
-      '<tr>' +
-      '<td class="c-no">' + pad2(w.no) + '</td>' +
-      '<td class="c-w"><b>' + esc(w.w) + '</b>' +
-        (w.py ? '<i>' + esc(w.py) + '</i>' : '') + '</td>' +
-      '<td class="c-m">' + esc(w.meaning) + '</td>' +
-      '<td class="c-e">' + esc(w.example || '') + '</td>' +
-      '<td class="c-ck"><span class="box"></span></td>' +
-      '</tr>'
-    )).join('');
+    const body = list.map((w) => {
+      const g = glossOf(w);
+      return '<tr>' +
+        '<td class="c-no">' + pad2(w.no) + '</td>' +
+        '<td class="c-q"><b>' + esc(g[0]) + '</b>' +
+          '<i>徐州：' + esc(w.w) + (w.py ? ' ' + esc(w.py) : '') + '</i></td>' +
+        '<td class="c-e">' + esc(g[1]) + '</td>' +
+        '<td class="c-ask"><span class="line"></span></td>' +
+        '<td class="c-ck"><span class="box"></span></td>' +
+        '</tr>';
+    }).join('');
 
     return (
       '<section class="blk">' +
@@ -104,8 +177,9 @@ function renderHtml(atlas, rows, sections) {
       '<span class="blk-range">' + pad2(s.from) + '–' + pad2(s.to) +
       ' · ' + s.count + ' 条</span></h2>' +
       '<table class="sheet">' +
-      '<thead><tr><th class="c-no">编号</th><th class="c-w">词</th>' +
-      '<th class="c-m">意思</th><th class="c-e">例句（整句念）</th>' +
+      '<thead><tr><th class="c-no">编号</th><th class="c-q">问的是（普通话）</th>' +
+      '<th class="c-e">例句（用家乡话说一遍）</th>' +
+      '<th class="c-ask">你家怎么说</th>' +
       '<th class="c-ck">念过</th></tr></thead>' +
       '<tbody>' + body + '</tbody></table>' +
       '</section>'
@@ -118,9 +192,10 @@ function renderHtml(atlas, rows, sections) {
 '<header class="cover">' +
   '<div class="cov-top"><span class="eyebrow">乡音册 · 第 1 卷 · 徐州</span>' +
     '<span class="cov-tag">念稿单</span></div>' +
-  '<h1>请人念一张纸，<br>换回一叠乡音。</h1>' +
-  '<p class="lede">这一卷收了 <b>' + total + '</b> 条徐州说法，分 <b>' + sections.length +
-    '</b> 个片区。下面是全部 ' + total + ' 条 —— 一条录一段，一条就是一个文件。</p>' +
+  '<h1>普通话问一句，<br>家乡话答一句。</h1>' +
+  '<p class="lede">这张纸上 <b>' + total + '</b> 个说法，全是普通话里的寻常话 —— 聊天、中午、昨天。' +
+    '左边是「问什么」，右边那条线留给<b>你们那儿怎么说</b>。徐州先答了一遍（灰字），' +
+    '换一个县、一个村，答法就换一套 —— 这一卷只是开了个头。</p>' +
 
   '<section class="how"><h3>怎么念</h3><div class="how-list">' + how + '</div></section>' +
 
@@ -139,16 +214,17 @@ function renderHtml(atlas, rows, sections) {
   '<h2>录完了，这几样一起给回来</h2>' +
   '<ol>' +
     '<li>音频 —— 一堆文件直接发，或者压成一个包。</li>' +
-    '<li>这张纸 —— 念过的打了勾、跳过的划了道，别人一看就知道哪几条空着。</li>' +
+    '<li>这张纸 —— 念过的打个勾，跳过的划一道。「你家怎么说」那栏写了最好，没写也不耽误。</li>' +
     '<li>一句话授权 —— 同意这段录音用在《乡音册》里，署名叫 <span class="u"></span>。</li>' +
   '</ol>' +
   '<div class="tail-note">' +
-    '录音只存在装《乡音册》的那台电脑上，不上传、不联网、不外发；这一卷导完，' +
-    '软件里就能听见 ' + total + ' 条里的真人说法。' +
+    '录音只存在收录音的那台电脑上，不上传、不联网；导进软件以后，' +
+    '这一卷里那 ' + total + ' 条就都有了真人说法，点一下能听。' +
   '</div>' +
   '<div class="tail-fine">' +
-    '这份是徐州样板房的 ' + total + ' 条。你在软件里开自己的一卷，' +
-    '「语言包」页能按你那一卷的词生成同样的念稿单 —— 纸能换，规矩一样。' +
+    '这张纸问的是普通话，答的是家乡话 —— 徐州这 ' + total + ' 条，不过是先答过的那一遍。' +
+    '你拿它去问自己的老家，答出来的就是第 2 卷、第 3 卷。' +
+    '在软件里开一卷，「语言包」页会按你那一卷的词生成同样的问法表 —— 纸能换，问法一样。' +
   '</div>' +
 '</section>' +
 
@@ -215,14 +291,15 @@ table.sheet th { font-size: 8.5pt; font-weight: 400; letter-spacing: .12em; colo
 table.sheet td { padding: 1.8mm 2mm; border-bottom: 1px dotted #d3c9b6; vertical-align: baseline; }
 table.sheet tr { page-break-inside: avoid; }
 
-.c-no { width: 13mm; font-family: Consolas, "Courier New", monospace; font-size: 11pt;
+.c-no { width: 12mm; font-family: Consolas, "Courier New", monospace; font-size: 11pt;
   color: #8f2f27; letter-spacing: .04em; }
-.c-w { width: 46mm; }
-.c-w b { font-size: 15.5pt; letter-spacing: .02em; }
-.c-w i { display: block; font-style: normal; font-size: 8.5pt; color: #7a7065;
-  letter-spacing: .06em; margin-top: .4mm; }
-.c-m { width: 52mm; font-size: 10.5pt; }
-.c-e { font-size: 10.5pt; color: #4a423a; }
+.c-q { width: 42mm; }
+.c-q b { font-size: 15pt; letter-spacing: .02em; }
+.c-q i { display: block; font-style: normal; font-size: 8.5pt; color: #7a7065;
+  letter-spacing: .04em; margin-top: .6mm; }
+.c-e { width: 64mm; font-size: 10.5pt; color: #4a423a; }
+.c-ask { width: 46mm; }
+.c-ask .line { display: block; height: 5.6mm; border-bottom: 1px dotted #b0a48e; }
 .c-ck { width: 12mm; text-align: center; }
 .box { display: inline-block; width: 5.2mm; height: 5.2mm; border: 1px solid #9a9082; }
 

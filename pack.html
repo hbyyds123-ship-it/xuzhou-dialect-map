@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>语言包 · 乡音册</title>
+<style>
+  :root{
+    --paper:#F3EDE1; --paper2:#E7DFCE; --paper3:#FBF7EE;
+    --ink:#1B1A17; --ink2:#6B655B; --zhu:#A63B2A; --dian:#2C4650;
+    --rule:rgba(27,26,23,.18); --ruleS:rgba(27,26,23,.45);
+    --serif:"Songti SC","SimSun","STSong","Noto Serif SC",serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;border-radius:0}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.75 var(--serif)}
+  body{max-width:880px;margin:0 auto;padding:38px 32px 80px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:12px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink2)}
+  h1{margin:6px 0 0;font-size:28px;letter-spacing:.1em}
+  .back{font-size:12px;color:var(--zhu);text-decoration:none;border-bottom:1px dotted var(--zhu);white-space:nowrap}
+  .lede{margin:14px 0 0;font-size:13px;color:var(--ink2);line-height:1.95}
+  .lede b{color:var(--ink);font-weight:400;border-bottom:1px solid var(--ruleS)}
+
+  section{margin-top:30px;border-top:1px solid var(--ink);padding-top:14px}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .sec-h b{font-size:15px;letter-spacing:.12em;font-weight:700}
+  .sec-h span{font-size:11.5px;color:var(--ink2)}
+  .no{font-family:var(--mono);font-size:11px;color:var(--ink2);letter-spacing:.1em}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink2);font-weight:400;
+     border-bottom:1px solid var(--ruleS);white-space:nowrap}
+  td code,.hint code,p code{font-family:var(--mono);background:var(--paper2);padding:1px 4px;font-size:11.5px}
+
+  ol.how{margin:0;padding-left:0;list-style:none;counter-reset:s}
+  ol.how>li{counter-increment:s;position:relative;padding:9px 0 9px 34px;border-bottom:1px solid var(--rule);font-size:13px}
+  ol.how>li:last-child{border-bottom:0}
+  ol.how>li::before{content:counter(s,decimal-leading-zero);position:absolute;left:0;top:9px;
+    font-family:var(--mono);font-size:11px;color:var(--zhu);letter-spacing:.1em}
+  ol.how b{font-weight:400;font-family:var(--serif);color:var(--ink);border-bottom:1px solid var(--ruleS)}
+  ol.how i{font-style:normal;color:var(--ink2);font-size:12px;display:block;margin-top:3px}
+
+  .rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:0 22px;margin:12px 0 0}
+  .rule{display:flex;gap:8px;font-size:12.5px;padding:8px 0;border-bottom:1px solid var(--rule);line-height:1.7}
+  .rule b{font-family:var(--mono);font-size:10px;color:var(--zhu);letter-spacing:.1em;flex:0 0 auto;padding-top:3px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+  label{display:block;font-size:11px;letter-spacing:.1em;color:var(--ink2);margin-bottom:5px}
+  input,textarea,select{width:100%;padding:8px 2px;font:inherit;font-size:14px;color:var(--ink);
+    background:transparent;border:1px solid var(--rule);border-bottom:1px solid var(--ruleS)}
+  input:focus,textarea:focus{outline:none;border-bottom-color:var(--zhu)}
+  textarea{min-height:76px;resize:vertical;font-size:13px;line-height:1.8}
+  .hint{font-size:11px;color:var(--ink2);margin:6px 0 0;line-height:1.8}
+
+  .scope{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 0}
+  .scope button{font:inherit;font-size:12px;padding:6px 12px;border:1px solid var(--ruleS);
+    background:transparent;color:var(--ink);cursor:pointer}
+  .scope button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+  .acts button{font:inherit;font-size:13px;padding:9px 18px;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);cursor:pointer;letter-spacing:.04em}
+  .acts button:hover{background:var(--ink);color:var(--paper)}
+  .acts button.primary{background:var(--zhu);border-color:var(--zhu);color:var(--paper3)}
+  .acts button.primary:hover{background:#8f3223;border-color:#8f3223}
+  .acts button:disabled{opacity:.4;cursor:not-allowed}
+  .acts button.ghost{border-color:var(--ruleS);color:var(--ink2)}
+
+  /* ---------- 念稿单 ---------- */
+  .sheet{border:1px solid var(--ruleS);background:var(--paper3);padding:22px 24px 18px;margin-top:6px}
+  .sh-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;
+    border-bottom:2px solid var(--ink);padding-bottom:10px}
+  .sh-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--ink2)}
+  .sh-head h2{margin:4px 0 2px;font-size:20px;letter-spacing:.08em}
+  .sh-sub{margin:0;font-size:11.5px;color:var(--ink2)}
+  .sh-code{text-align:right;flex:0 0 auto}
+  .sh-code span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink2)}
+  .sh-code b{font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.04em}
+  .sh-how{margin:12px 0 14px;padding:9px 11px;background:var(--paper2);font-size:11.5px;line-height:1.85}
+  .sh-how b{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--zhu)}
+  .sh-how span{display:block}
+  .sh-how span:first-of-type{margin-top:4px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.16em;color:var(--zhu)}
+  .sh-tab .c-no{width:34px;font-family:var(--mono);font-size:11px;color:var(--ink2)}
+  .sh-tab .c-w{width:31%}
+  .sh-tab .c-m{width:26%;font-size:11.5px;color:var(--ink2)}
+  .sh-tab .c-k{width:26%}
+  .sh-tab td{padding:8px 6px;border-bottom:1px solid var(--rule)}
+  .sh-tab td.c-w{font-size:17px;letter-spacing:.06em}
+  .sh-tab td.c-w i{display:block;font-style:normal;font-family:var(--mono);font-size:10px;
+    color:var(--ink2);letter-spacing:.02em;margin-top:1px}
+  .sh-foot{margin:10px 0 0;font-size:10.5px;color:var(--ink2);letter-spacing:.04em}
+
+  /* ---------- 导入 ---------- */
+  .drop{border:1px dashed var(--ruleS);padding:26px 18px;text-align:center;background:var(--paper3);
+    transition:background .15s,border-color .15s;cursor:pointer}
+  .drop.over{background:var(--paper2);border-color:var(--zhu)}
+  .drop b{display:block;font-size:14px;font-weight:400;letter-spacing:.04em}
+  .drop span{display:block;font-size:11.5px;color:var(--ink2);margin-top:6px;line-height:1.8}
+  .opt{display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:12px;color:var(--ink2);line-height:1.7}
+  .opt input{width:auto;margin:3px 0 0;flex:0 0 auto}
+
+  .rep{margin-top:14px;font-size:12.5px}
+  .rep-sum{padding:10px 12px;background:var(--paper2);border-left:3px solid var(--dian);line-height:1.9}
+  .rep-sum.bad{border-left-color:var(--zhu)}
+  .rep-sum b{font-weight:400;color:var(--zhu);font-size:15px;padding:0 2px}
+  .rep-list{margin:10px 0 0}
+  .rep-row{display:grid;grid-template-columns:30px 1fr auto auto;gap:10px;align-items:center;
+    padding:5px 0;border-bottom:1px solid var(--rule);font-size:12.5px}
+  .rep-row .rn{font-family:var(--mono);font-size:10.5px;color:var(--ink2)}
+  .rep-row .rw{font-size:14px;letter-spacing:.04em}
+  .rep-row .rw i{font-style:normal;font-size:10.5px;color:var(--ink2);margin-left:6px;font-family:var(--mono)}
+  .rep-row .rt{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink2)}
+  .rep-row .rp{font:inherit;font-size:11px;width:26px;height:22px;border:1px solid var(--ruleS);
+    background:transparent;color:var(--zhu);cursor:pointer}
+  .rep-row .rp:hover{background:var(--zhu);color:var(--paper3)}
+  .rep-row.skip .rw,.rep-row.bad .rw{color:var(--ink2)}
+  .rep-why{color:var(--zhu);font-size:11px}
+
+  pre.fmt{background:var(--paper3);border:1px solid var(--rule);padding:14px 16px;overflow:auto;
+    font-family:var(--mono);font-size:11.5px;line-height:1.85;margin:0}
+
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:var(--ink);
+    color:var(--paper);font-size:12.5px;padding:9px 18px;opacity:0;pointer-events:none;
+    transition:opacity .18s,transform .18s;max-width:80vw;z-index:99}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media print{
+    body{max-width:none;padding:0}
+    header,.lede,section:not(#secSheet),#secSheet>.sec-h,#secSheet .no-print{display:none !important}
+    #secSheet{border:0;margin:0;padding:0}
+    .sheet{border:0;background:#fff;padding:0}
+    @page{margin:14mm}
+  }
+  @media (max-width:720px){
+    body{padding:24px 18px 60px}
+    .rep-row{grid-template-columns:26px 1fr auto}
+    .rep-row .rt{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">乡音册 · 语言包</div>
+    <h1>把一个人的声音装进来</h1>
+  </div>
+  <a class="back" href="index.html">← 回地图</a>
+</header>
+
+<p class="lede">
+  请人录方言，难的从来不是"录音"这一步 —— 是交接。<br>
+  老人用手机念了二十条，发过来一堆<b>新录音 1</b>、<b>新录音 2</b>，
+  谁也不知道哪条对哪个词，这堆声音就废了。<br>
+  语言包就是为了解决这件事：<b>一张能打印的念稿单</b> + <b>一个能对号的清单</b>，
+  你把它给出去，收回来导进这一卷，词条上就有了真人声音。
+</p>
+
+<!-- ============ 01 两条线 ============ -->
+<section id="secLine">
+  <div class="sec-h"><span class="no">01</span><b>先分清两条线</b><span>它们都叫"包"，但装的东西不一样</span></div>
+  <table>
+    <thead><tr><th></th><th>语言包</th><th>演示包</th></tr></thead>
+    <tbody>
+      <tr><td>装什么</td><td><b>请别人录</b>的范本音</td><td><b>你自己录</b>的自家说法（含三代、标注）</td></tr>
+      <tr><td>谁的声音</td><td>发音人（可以是家里的老人、也可以是别人）</td><td>你、你爸妈、你爷爷奶奶</td></tr>
+      <tr><td>存在哪</td><td>范本音库（学习时优先播）</td><td>采样台录音库（词条上标「你家的说法」）</td></tr>
+      <tr><td>在哪导入</td><td><b>就是这一页</b></td><td>采样台 →「导入演示包」</td></tr>
+      <tr><td>格式</td><td><code>xiangyince-pack/1</code></td><td><code>xiangyince-demo/1</code></td></tr>
+    </tbody>
+  </table>
+  <p class="hint">混着走的后果：格式不一样，导不进去；就算硬塞进去，"这话是谁说的"也丢了 —— 而这句话正是整套东西的价值所在。</p>
+</section>
+
+<!-- ============ 02 怎么让人录 ============ -->
+<section id="secHow">
+  <div class="sec-h"><span class="no">02</span><b>怎么让人录</b><span>四步，对方不需要装任何软件</span></div>
+  <ol class="how">
+    <li><b>先开一个包</b>（下面第 03 节）
+      <i>选好词、填上发音人，得到两样东西：一份清单 <code>.json</code>、一张念稿单。</i></li>
+    <li><b>把念稿单打印出来（或截图发过去）</b>
+      <i>纸上每一行是一个词：编号、词、拼音、意思，最后留一格空着写"你家怎么说"。</i></li>
+    <li><b>让对方照着念，一条录一段</b>
+      <i>手机自带录音机就行。iOS 是「语音备忘录」，安卓多半叫「录音机」。不用联网、不用注册。</i></li>
+    <li><b>把音频发回来，导进这一页</b>
+      <i>按 <code>01</code>、<code>02</code> 命名最省事；不改名也认 —— 会按录音顺序对号，并在导入报告里一条条列出来给你核对。</i></li>
+  </ol>
+
+  <div class="rules">
+    <div class="rule"><b>规矩 1</b><span><b>一条一段</b>，按 01、02 的顺序。连成一整段的录音要在中间切，切错了就对不上词。</span></div>
+    <div class="rule"><b>规矩 2</b><span><b>开头先说一句</b>："我是王秀兰，沛县张寨人，1950 年生。" 这句话本身就是这条录音的身份证。</span></div>
+    <div class="rule"><b>规矩 3</b><span><b>不认识就跳过</b>，别硬念。跳过的词空着，比编一条假的有用得多 —— 这一卷的价值在"真"。</span></div>
+    <div class="rule"><b>规矩 4</b><span><b>安静、离嘴一拳</b>。关掉电视和风扇，手机别捂着，别在院子里录（风噪救不回来）。</span></div>
+  </div>
+
+  <p class="hint" style="margin-top:14px">
+    <b style="font-weight:400;color:var(--zhu)">别用微信的语音消息发</b> —— 那种条形的语音存成文件，
+    音质被压过、也对不上号。要发就发<b style="font-weight:400">「文件」</b>（微信里选「文件」而不是「语音」），
+    或者干脆用数据线拷、用网盘传。录音机里存下来的 <code>.m4a</code> / <code>.mp3</code> / <code>.wav</code> 都认。
+  </p>
+  <p class="hint">
+    对方会自己开电脑、有麦克风？那最省事：把这一卷的录音页给他 ——
+    <a href="recorder/" style="color:var(--zhu)">录音页</a>，录完直接导出演示包发你，一条都不会错位。
+  </p>
+</section>
+
+<!-- ============ 03 开一个包 ============ -->
+<section id="secMake">
+  <div class="sec-h"><span class="no">03</span><b>开一个语言包</b><span>一个包 = 一个人 = 一次录制</span></div>
+
+  <div class="grid">
+    <div><label for="spName">发音人</label><input id="spName" placeholder="姓名，写进念稿单"></div>
+    <div><label for="spYear">出生年</label><input id="spYear" type="number" placeholder="如 1950"></div>
+    <div><label for="spHome">老家（村镇）</label><input id="spHome" placeholder="如 沛县张寨"></div>
+    <div><label for="spYears">在本地住了几年</label><input id="spYears" type="number" placeholder="如 60"></div>
+  </div>
+
+  <div style="margin-top:14px">
+    <label for="lic">授权（会写进包，也建议念稿单上留一句）</label>
+    <textarea id="lic"></textarea>
+  </div>
+
+  <div style="margin-top:16px">
+    <label>这一包收哪些词</label>
+    <div class="scope" id="scope">
+      <button data-s="missing" class="on">只收还没范本音的</button>
+      <button data-s="all">这一卷全部</button>
+    </div>
+    <p class="hint" id="scopeHint"></p>
+  </div>
+
+  <div class="acts">
+    <button class="primary" id="btnDl">下载清单 .json</button>
+    <button id="btnPrint">打印念稿单</button>
+    <button class="ghost" id="btnCopy">复制清单文本</button>
+  </div>
+  <p class="hint" id="makeHint"></p>
+</section>
+
+<!-- ============ 04 念稿单 ============ -->
+<section id="secSheet">
+  <div class="sec-h"><span class="no">04</span><b>念稿单</b><span>打印出来给发音人；下面这块就是打印出来的样子</span></div>
+  <div class="no-print acts" style="margin:0 0 12px">
+    <button id="btnPrint2">打印这一页</button>
+  </div>
+  <div id="sheetBox"></div>
+</section>
+
+<!-- ============ 05 导入 ============ -->
+<section id="secImport">
+  <div class="sec-h"><span class="no">05</span><b>导入语言包</b><span>清单一并拖进来就够，音频可以多选</span></div>
+
+  <div class="drop" id="drop">
+    <b>把 .json 清单和音频一起拖到这里</b>
+    <span>或者点这里选文件（可多选）<br>
+      清单里内嵌了音频的单文件包，只拖那一个 .json 也行</span>
+    <input type="file" id="pick" multiple accept=".json,.mp3,.wav,.m4a,.aac,.ogg,.webm,.flac,audio/*" hidden>
+  </div>
+
+  <label class="opt"><input type="checkbox" id="ov">
+    <span>已经有范本音的词，用这一次录的<b style="font-weight:400;color:var(--zhu)">覆盖</b>掉（默认跳过，保留先来的）</span></label>
+  <label class="opt"><input type="checkbox" id="fo">
+    <span>强制<b style="font-weight:400">按录音顺序</b>对号 —— 只在文件名里一半有编号、一半没有时才用；
+      一般不用勾，程序自己会在"一个都对不上"时按顺序对</span></label>
+
+  <div class="rep" id="rep"></div>
+</section>
+
+<!-- ============ 06 格式 ============ -->
+<section id="secFormat">
+  <div class="sec-h"><span class="no">06</span><b>格式</b><span>要自己写脚本生成、或要核对清单时看这里</span></div>
+  <pre class="fmt">{
+  "format": "xiangyince-pack/1",
+  "packId": "pk...",
+  "createdAt": "2026-11-07T12:00:00.000Z",
+  "volume":  { "no": 1, "name": "徐州", "dialect": "徐州话" },
+  "speaker": { "name": "王秀兰", "birthYear": 1950,
+               "hometown": "沛县张寨", "years": 60, "note": "" },
+  "license": "发音人同意……",
+  "items": [
+    { "no": 1, "wordId": "yibengzi", "word": "一崩子",
+      "py": "yī bēng zi", "meaning": "一段时间",
+      "file": "01.m4a", "data": null, "note": "" }
+  ]
+}</pre>
+  <p class="hint">
+    <b style="font-weight:400">音频有两种给法</b>：<code>file</code> 写文件名，音频文件单独给；
+    或者 <code>data</code> 填 base64，整包就是一个 <code>.json</code>（方便微信发）。<br>
+    <b style="font-weight:400">对号优先级</b>：<code>file</code> 精确同名 → 文件名里的编号（1–3 位，不认长串时间戳）→ 文件名就是词/词条 id → 录音顺序。<br>
+    <b style="font-weight:400">只写 <code>wordId</code> 是必须的</b>：<code>word</code>、<code>py</code>、<code>meaning</code> 只是给人看的，
+    程序靠 <code>wordId</code> 认词。单条上限 24MB，一包上限 500 条。
+  </p>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script src="data/volume.js"></script>
+<script src="data/atlas.js"></script>
+<script src="data/refs.js"></script>
+<script src="features/volumes.js"></script>
+<script src="features/refs.js"></script>
+<script src="features/pack.js"></script>
+<script>
+(function () {
+  'use strict';
+  var P = window.XZ.pack;
+  var $ = function (s) { return document.querySelector(s); };
+  var $$ = function (s) { return Array.prototype.slice.call(document.querySelectorAll(s)); };
+
+  var toastT = 0;
+  function toast(msg) {
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { t.classList.remove('on'); }, 3200);
+  }
+
+  /* ---------------- 授权默认值 ---------------- */
+  var LIC = '发音人同意：本次录音用于本卷方言的记录与学习，可在本程序内播放，并可随这一卷导出给他人学习；不用于商业用途。发音人可随时要求撤回。';
+  $('#lic').value = LIC;
+
+  /* ---------------- 建包 ---------------- */
+  var scope = 'missing';
+  var doc = null;
+
+  function pickWords() {
+    var all = P.currentWords();
+    if (scope === 'all') return all;
+    return all.filter(function (w) { return !P.hasRef(w.id); });
+  }
+
+  function rebuild() {
+    doc = P.buildPack({
+      speaker: {
+        name: $('#spName').value.trim(),
+        birthYear: $('#spYear').value.trim(),
+        hometown: $('#spHome').value.trim(),
+        years: $('#spYears').value.trim()
+      },
+      license: $('#lic').value.trim(),
+      words: pickWords()
+    });
+    renderSheet();
+    renderHint();
+  }
+
+  function renderHint() {
+    var all = P.currentWords().length;
+    var picked = doc.items.length;
+    var haveRef = all - P.currentWords().filter(function (w) { return !P.hasRef(w.id); }).length;
+
+    $('#scopeHint').textContent = scope === 'missing'
+      ? '这一卷共 ' + all + ' 个词，其中 ' + haveRef + ' 个已经有范本音 —— 这一包只收剩下的 ' + picked + ' 个。'
+      : '这一卷共 ' + all + ' 个词，全部收进这一包（已经有的会被这次录的覆盖）。';
+
+    var h = [];
+    if (!picked) {
+      h.push('这一包的词是空的：这一卷每个词都有范本音了。切到「这一卷全部」才能再录一遍。');
+    } else {
+      h.push('这一包 ' + picked + ' 条，念完大约 ' + Math.max(1, Math.round(picked * 0.35)) + ' 分钟。');
+      if (picked > 30) h.push('超过 30 条了，老人一次性念完会累 —— 建议分成两三次，一个包一个人一次。');
+      if (!$('#spName').value.trim()) h.push('发音人还没写名字，包能导出，但报告里只能说"不知道谁念的"。');
+    }
+    $('#makeHint').textContent = h.join(' ');
+    $('#btnDl').disabled = !picked;
+    $('#btnPrint').disabled = !picked;
+    $('#btnPrint2').disabled = !picked;
+  }
+
+  function renderSheet() {
+    $('#sheetBox').innerHTML = doc.items.length
+      ? P.sheetHTML(doc)
+      : '<p class="hint" style="margin:0">这一包没有词，没有念稿单可打印。切到「这一卷全部」试试。</p>';
+  }
+
+  ['#spName', '#spYear', '#spHome', '#spYears', '#lic'].forEach(function (s) {
+    $(s).addEventListener('input', rebuild);
+  });
+
+  $('#scope').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('button[data-s]') : null;
+    if (!b) return;
+    scope = b.getAttribute('data-s');
+    $$('#scope button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    rebuild();
+  });
+
+  function fileTag() {
+    var sp = ($('#spName').value.trim() || '未署名的发音人');
+    var name = (doc.volume && doc.volume.name) || '这一卷';
+    return '语言包-' + name + '-' + sp + '-' + doc.items.length + '条';
+  }
+
+  $('#btnDl').addEventListener('click', function () {
+    if (!doc.items.length) return;
+    P.downloadJSON(fileTag() + '.json', doc);
+    toast('清单已下载。把它和念稿单一起发给发音人 —— 录回来时，音频文件名用 01、02 就行。');
+  });
+
+  $('#btnCopy').addEventListener('click', function () {
+    var txt = JSON.stringify(doc, null, 1);
+    var done = function () { toast('清单文本已复制（' + txt.length + ' 字符）。'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done, function () { toast('复制不了，请用「下载清单」。'); });
+    } else { toast('这个浏览器不支持复制，请用「下载清单」。'); }
+  });
+
+  $('#btnPrint').addEventListener('click', function () { window.print(); });
+  $('#btnPrint2').addEventListener('click', function () { window.print(); });
+
+  /* ---------------- 导入 ---------------- */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[<>&"]/g, function (c) {
+      return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c];
+    });
+  }
+
+  function renderReport(r) {
+    var box = $('#rep');
+    if (!r || !r.ok) {
+      var errs = (r && r.errors) || [{ msg: '读不出这份东西' }];
+      box.innerHTML = '<div class="rep-sum bad">一条都没导进来：</div>' +
+        errs.map(function (e) { return '<div class="hint" style="margin:6px 0 0">· ' + esc(e.msg) + '</div>'; }).join('');
+      return;
+    }
+
+    var bits = [];
+    if (r.added.length) bits.push('新增 <b>' + r.added.length + '</b> 条');
+    if (r.skipped.length) bits.push('跳过 <b>' + r.skipped.length + '</b> 条（已有范本音）');
+    if (r.missing.length) bits.push('缺 <b>' + r.missing.length + '</b> 条（清单有、音频没给）');
+    if (r.extra && r.extra.length) bits.push('多 <b>' + r.extra.length + '</b> 个文件（清单里没有）');
+    if (r.failed && r.failed.length) bits.push('失败 <b>' + r.failed.length + '</b> 条');
+    var none = !r.added.length && !r.skipped.length && !r.failed.length;
+
+    var head = (r.speaker ? '「' + esc(r.speaker) + '」' : '这一包') +
+      (r.packNo ? ' 第 ' + r.packNo + ' 卷' : '') + '：';
+
+    var html = '<div class="rep-sum' + (none ? ' bad' : '') + '">' + head + ' ' + bits.join(' · ');
+    if (r.orderUsed) html += '<br><span style="font-size:11.5px;color:var(--ink2)">文件名里认不出编号，这一批是<b style="font-weight:400;color:var(--zhu)">按录音顺序</b>对号的 —— 请逐条点 ▶ 核对，对错了就改名重导。</span>';
+    html += '</div>';
+
+    function row(cls, no, word, talk, tag, playId, why) {
+      return '<div class="rep-row ' + cls + '">' +
+        '<span class="rn">' + P.pad2(no || 0) + '</span>' +
+        '<span class="rw">' + esc(word || '') + (talk ? '<i>' + esc(talk) + '</i>' : '') + '</span>' +
+        '<span class="rt">' + esc(tag || '') + '</span>' +
+        (playId
+          ? '<button class="rp" data-play="' + esc(playId) + '" title="试听这一条">▶</button>'
+          : '<span class="rep-why">' + esc(why || '') + '</span>') +
+        '</div>';
+    }
+
+    var rows = '';
+    r.added.forEach(function (a) {
+      rows += row('', a.no, a.word, a.how === '内嵌' ? '' : a.how,
+        (r.speaker || '') + (a.here ? '' : ' · 属于别的卷'), a.wordId, '');
+    });
+    r.skipped.forEach(function (s) { rows += row('skip', s.no, s.word, '', s.why, null, '跳过'); });
+    r.failed.forEach(function (f) { rows += row('bad', f.no, f.word, '', f.why, null, '失败'); });
+    r.missing.forEach(function (m) { rows += row('bad', m.no, m.word, '', '清单里有', null, '缺音频'); });
+    (r.extra || []).forEach(function (f) {
+      rows += '<div class="rep-row bad"><span class="rn">—</span>' +
+        '<span class="rw">' + esc(f.name) + '</span><span class="rt">多余</span>' +
+        '<span class="rep-why">没用上</span></div>';
+    });
+
+    if (rows) html += '<div class="rep-list">' + rows + '</div>';
+
+    var far = r.added.filter(function (a) { return !a.here; }).length;
+    if (far) {
+      html += '<p class="hint">其中 ' + far + ' 条的词不在当前这一卷里 —— 数据已经存下了，\n' +
+        '切到它所属的那一卷才能在地图上听到。</p>';
+    }
+    if (r.added.length) {
+      html += '<p class="hint">现在回地图，点这些词条就有「♪ 范本音」了；学习侧也会优先播它。</p>';
+    }
+    box.innerHTML = html;
+
+    $$('#rep [data-play]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-play');
+        b.textContent = '…';
+        window.XZ.refs.play(id).then(function (ok) {
+          b.textContent = '▶';
+          if (!ok) toast('这一条没能播出来：文件可能没写进本机。');
+        });
+      });
+    });
+  }
+
+  function doImport(files) {
+    if (!files || !files.length) return;
+    P.splitInputs(files).then(function (inp) {
+      if (inp.parseError) { renderReport({ ok: false, errors: [{ msg: inp.parseError }] }); return; }
+      if (!inp.doc) {
+        renderReport({ ok: false, errors: [
+          { msg: '没有找到清单（.json）。只给音频文件的话，程序不知道该把哪一段放进哪个词。' },
+          { msg: '要去掉清单也可以：把文件按词命名（' + 'maozi.mp3' + ' 或 茅子.mp3），到「词条册 → 导入录音文件」那条老路。' }
+        ] });
+        return;
+      }
+      P.importPack(inp.doc, inp.files, {
+        overwrite: $('#ov').checked,
+        mode: $('#fo').checked ? 'order' : 'auto'
+      }).then(renderReport);
+    });
+  }
+
+  var drop = $('#drop'), pick = $('#pick');
+  drop.addEventListener('click', function () { pick.click(); });
+  pick.addEventListener('change', function () { doImport(this.files); this.value = ''; });
+  ['dragenter', 'dragover'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave', 'drop'].forEach(function (t) {
+    drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files;
+    if (f && f.length) doImport(f);
+  });
+  /* 整页都可以接住拖进来的文件：拖歪了不该什么也不发生 */
+  window.addEventListener('dragover', function (e) { e.preventDefault(); });
+  window.addEventListener('drop', function (e) {
+    if (e.target === drop || drop.contains(e.target)) return;
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files;
+    if (f && f.length) doImport(f);
+  });
+
+  rebuild();
+})();
+</script>
+</body>
+</html>

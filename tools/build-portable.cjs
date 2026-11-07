@@ -46,10 +46,11 @@ const EXE_NAME = VO.title + '.exe';
 const ASSETS = [
   'index.html',
   'volumes.html',
+  'pack.html',
   'css/style.css', 'css/paper.css', 'css/vol-board.css',
   'features/quiz.css', 'features/scene.css',
   'features/sample.js', 'features/refs.js', 'features/quiz.js', 'features/scene.js',
-  'features/volumes.js', 'features/vol-board.js', 'features/about-vol.js',
+  'features/volumes.js', 'features/vol-board.js', 'features/about-vol.js', 'features/pack.js',
   'js/app.js',
   'core/store.js', 'core/router.js', 'core/volume.js',
   'data/atlas.js', 'data/refs.js', 'data/volume.js', 'data/geo.xuzhou.js',

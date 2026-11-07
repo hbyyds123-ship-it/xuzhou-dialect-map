@@ -58,6 +58,9 @@ jobs:
       # 它要开浏览器，所以放在这个已经有 Chrome 的 job 里，而不是静态那个
       - run: node tools/check-volumes.cjs
 
+      # 语言包（建包 / 配对四种策略 / 导入落库 / 跳过与缺失 / 念稿单）
+      - run: node tools/check-pack.cjs
+
       - name: 留一份运行日志与结果
         if: always()
         uses: actions/upload-artifact@v4

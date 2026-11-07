@@ -97,7 +97,8 @@
       list.forEach(function (r) {
         map[r.id] = {
           id: r.id, name: r.name || '', mime: r.mime || '',
-          size: r.size || 0, at: r.at || 0, bundled: false
+          size: r.size || 0, at: r.at || 0, bundled: false,
+          by: r.by || '', packId: r.packId || ''
         };
       });
       cache = map;
@@ -155,15 +156,20 @@
     });
   }
 
-  function add(id, file) {
+  function add(id, file, meta) {
     if (!id || !file) return Promise.reject(new Error('bad-args'));
     if (file.size && file.size > MAX_BYTES) return Promise.reject(new Error('too-large'));
+    meta = meta || {};
     var rec = {
       id: id,
-      name: file.name || (id + '.mp3'),
-      mime: file.type || guessMime(file.name),
+      name: meta.name || file.name || (id + '.mp3'),
+      mime: file.type || guessMime(meta.name || file.name),
       size: file.size || 0,
-      at: Date.now(),
+      at: (typeof meta.at === 'number' && meta.at > 0) ? meta.at : Date.now(),
+      /* 「这话是谁说的」不是装饰：语言包导进来的一批人，得能看出是同一批。
+         留空表示没说 —— 不编一个"未知发音人"填上去。 */
+      by: String(meta.by || ''),
+      packId: String(meta.packId || ''),
       blob: file
     };
     return openDB().then(function (db) {

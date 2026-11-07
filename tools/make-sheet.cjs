@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 /**
- * 生成《乡音册 · 徐州卷 念稿单》——一张能打印、能交给发音人的纸。
+ * 生成《乡音册 · 问法表》——一张能打印、能交给任何地区发音人的纸。
  *
- *   node tools/make-sheet.cjs            生成 docs/念稿单-徐州.html 与 .pdf
+ *   node tools/make-sheet.cjs            生成 docs/问法表.html 与 .pdf
  *   node tools/make-sheet.cjs --html-only  只出 HTML（没装 chromium 时用）
  *
+ * 这张纸**不带任何一地的说法**：条目全是普通话里的寻常话，哪儿的人都能答。
+ * 徐州那 54 条只是把词目凑齐的第一版；同样的纸拿到别处，答出来就是别处的一卷。
+ *
  * 与 pack.html 里那个「打印念稿单」的区别：
- *   - pack.html 打的是**当前这一卷 / 当前筛选**，现场用；
- *   - 这个脚本打的是**整卷 54 条**，一次成型，能直接发给别人。
+ *   - pack.html 打的是**当前这一卷**（带这一卷已有的说法），现场用；
+ *   - 这个脚本打的是**通用问法表**，不绑卷，一次成型能直接发给别人。
  * 两处的编号规则必须一致：编号 = 音频文件名里的数字（01、02…）。
  */
 'use strict';
@@ -18,7 +21,7 @@ const vm = require('vm');
 
 const ROOT = path.resolve(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'docs');
-const BASE = '念稿单-徐州';
+const BASE = '问法表';
 
 /* ---------------- 读词表 ---------------- */
 
@@ -29,33 +32,49 @@ function loadAtlas() {
 }
 
 /**
- * 按「片区 → 好念的先」重排编号。
+ * 按「日常话题 → 好答的先」重排编号。
  *
- * 为什么要重排：atlas 里的词是分批补进去的，同一个区县的词散在 01、34、53 三处。
- * 纸是要给老人照着一页页念的，编号连着走才不会让人以为漏了。
+ * 为什么按话题而不按地区：这张纸要发给任何一个县、一个村，地区分区对他们没意义；
+ * 按「什么时候 / 什么东西 / 做什么」这样的话题排，老人念起来顺，也像一份正经的调查表。
  * 编号不写进任何数据，只在「这一份纸 + 这一批音频」之间起作用，所以重排是安全的。
  */
-function buildRows(atlas) {
-  const order = atlas.districts.map((d) => d.id);
-  const byDistrict = {};
-  atlas.words.forEach((w) => {
-    (byDistrict[w.districtId] = byDistrict[w.districtId] || []).push(w);
-  });
+const GROUPS = [
+  { id: 'time', name: '一 · 什么时候', ids: ['yelai', 'ganming', 'shangwu', 'mashang', 'mazhan', 'yibengzi'] },
+  { id: 'thing', name: '二 · 什么东西', ids: ['hutu', 'yangshi', 'shounie', 'yizi', 'maoge', 'maozi', 'tingting', 'jueya', 'gebai'] },
+  { id: 'do', name: '三 · 做点什么', ids: ['jiazou', 'shiduo', 'daocai', 'dabashou', 'gudao', 'zhagu', 'samo', 'puleng', 'yerang'] },
+  { id: 'talk', name: '四 · 开口说话', ids: ['lagua', 'guada', 'hulielie', 'nen', 'an', 'shenme', 'zoume'] },
+  { id: 'place', name: '五 · 什么地方', ids: ['genala', 'gengen', 'renn', 'wudang'] },
+  { id: 'look', name: '六 · 什么样子', ids: ['zir', 'cimao', 'yangxin', 'kechen', 'bandiaozi', 'mazhua', 'shidehuang', 'xihan', 'tiliu'] },
+  { id: 'tone', name: '七 · 轻重和语气', ids: ['guan', 'bai', 'deyouyi', 'haile', 'laobizi', 'xiexie', 'ladao', 'waini', 'babuneng', 'deji'] }
+];
 
+function buildRows(atlas) {
+  const byId = {};
+  atlas.words.forEach((w) => { byId[w.id] = w; });
+
+  const used = {};
   const rows = [];
   const sections = [];
-  order.forEach((id) => {
-    const list = (byDistrict[id] || []).slice().sort((a, b) => {
-      return (a.difficulty || 9) - (b.difficulty || 9);
-    });
+
+  GROUPS.forEach((g) => {
+    const list = g.ids.map((id) => byId[id]).filter(Boolean)
+      .sort((a, b) => (a.difficulty || 9) - (b.difficulty || 9));
     if (!list.length) return;
-    const d = atlas.districts.find((x) => x.id === id);
     const start = rows.length + 1;
     list.forEach((w) => {
-      rows.push(Object.assign({}, w, { no: rows.length + 1, districtName: d.name }));
+      used[w.id] = true;
+      rows.push(Object.assign({}, w, { no: rows.length + 1 }));
     });
-    sections.push({ id, name: d.name, from: start, to: rows.length, count: list.length });
+    sections.push({ id: g.id, name: g.name, from: start, to: rows.length, count: list.length });
   });
+
+  /* 用户自己开的卷、或以后补进来的词：没归到话题里的，单列一组，别丢 */
+  const rest = atlas.words.filter((w) => !used[w.id]);
+  if (rest.length) {
+    const start = rows.length + 1;
+    rest.forEach((w) => rows.push(Object.assign({}, w, { no: rows.length + 1 })));
+    sections.push({ id: 'more', name: '八 · 还没归类', from: start, to: rows.length, count: rest.length });
+  }
 
   return { rows, sections };
 }
@@ -163,8 +182,7 @@ function renderHtml(atlas, rows, sections) {
       const g = glossOf(w);
       return '<tr>' +
         '<td class="c-no">' + pad2(w.no) + '</td>' +
-        '<td class="c-q"><b>' + esc(g[0]) + '</b>' +
-          '<i>徐州：' + esc(w.w) + (w.py ? ' ' + esc(w.py) : '') + '</i></td>' +
+        '<td class="c-q"><b>' + esc(g[0]) + '</b></td>' +
         '<td class="c-e">' + esc(g[1]) + '</td>' +
         '<td class="c-ask"><span class="line"></span></td>' +
         '<td class="c-ck"><span class="box"></span></td>' +
@@ -187,15 +205,15 @@ function renderHtml(atlas, rows, sections) {
   }).join('');
 
   return '<!DOCTYPE html>\n<html lang="zh-CN"><head><meta charset="utf-8">' +
-'<title>念稿单 · 徐州卷 · 乡音册</title>\n<style>\n' + CSS + '</style></head>\n<body>\n' +
+'<title>问法表 · 乡音册</title>\n<style>\n' + CSS + '</style></head>\n<body>\n' +
 
 '<header class="cover">' +
-  '<div class="cov-top"><span class="eyebrow">乡音册 · 第 1 卷 · 徐州</span>' +
-    '<span class="cov-tag">念稿单</span></div>' +
+  '<div class="cov-top"><span class="eyebrow">乡音册 · 问法表</span>' +
+    '<span class="cov-tag">普通话问 · 家乡话答</span></div>' +
   '<h1>普通话问一句，<br>家乡话答一句。</h1>' +
-  '<p class="lede">这张纸上 <b>' + total + '</b> 个说法，全是普通话里的寻常话 —— 聊天、中午、昨天。' +
-    '左边是「问什么」，右边那条线留给<b>你们那儿怎么说</b>。徐州先答了一遍（灰字），' +
-    '换一个县、一个村，答法就换一套 —— 这一卷只是开了个头。</p>' +
+  '<p class="lede">这张纸上 <b>' + total + '</b> 个说法，全是普通话里的寻常话 —— 聊天、中午、昨天、膝盖。' +
+    '左边是「问什么」，右边那条线留给<b>你们那儿怎么说</b>。' +
+    '哪儿的人都能答，答出来就是哪儿的一卷。</p>' +
 
   '<section class="how"><h3>怎么念</h3><div class="how-list">' + how + '</div></section>' +
 
@@ -222,9 +240,8 @@ function renderHtml(atlas, rows, sections) {
     '这一卷里那 ' + total + ' 条就都有了真人说法，点一下能听。' +
   '</div>' +
   '<div class="tail-fine">' +
-    '这张纸问的是普通话，答的是家乡话 —— 徐州这 ' + total + ' 条，不过是先答过的那一遍。' +
-    '你拿它去问自己的老家，答出来的就是第 2 卷、第 3 卷。' +
-    '在软件里开一卷，「语言包」页会按你那一卷的词生成同样的问法表 —— 纸能换，问法一样。' +
+    '这张纸不带任何一个地方的说法：左边是普通话，右边是你家的话。' +
+    '同一个人拿着它，可以问徐州，可以问潮州，也可以问你自己的村子 —— 问法一样，答出来的各是一卷。' +
   '</div>' +
 '</section>' +
 
@@ -293,12 +310,10 @@ table.sheet tr { page-break-inside: avoid; }
 
 .c-no { width: 12mm; font-family: Consolas, "Courier New", monospace; font-size: 11pt;
   color: #8f2f27; letter-spacing: .04em; }
-.c-q { width: 42mm; }
+.c-q { width: 52mm; }
 .c-q b { font-size: 15pt; letter-spacing: .02em; }
-.c-q i { display: block; font-style: normal; font-size: 8.5pt; color: #7a7065;
-  letter-spacing: .04em; margin-top: .6mm; }
-.c-e { width: 64mm; font-size: 10.5pt; color: #4a423a; }
-.c-ask { width: 46mm; }
+.c-e { width: 74mm; font-size: 10.5pt; color: #4a423a; }
+.c-ask { width: 40mm; }
 .c-ask .line { display: block; height: 5.6mm; border-bottom: 1px dotted #b0a48e; }
 .c-ck { width: 12mm; text-align: center; }
 .box { display: inline-block; width: 5.2mm; height: 5.2mm; border: 1px solid #9a9082; }

@@ -342,6 +342,22 @@ async function main() {
   fs.writeFileSync(htmlPath, html, 'utf8');
   console.log('HTML: ' + htmlPath + '  (' + rows.length + ' 条 / ' + sections.length + ' 片区)');
 
+  /* 顺带把「问法表的顺序」写成数据文件。
+     切条页要用它做「按问法表顺序填」——照着同一张纸念回来的长录音，
+     切出来的段也是这个顺序。顺序只在这两个地方有意义，别手改。 */
+  const orderPath = path.join(OUT_DIR, '..', 'data', 'sheet-order.js');
+  const secOf = {};
+  sections.forEach((s) => { for (let n = s.from; n <= s.to; n++) secOf[n] = s.name; });
+  const lines = rows.map((w) => {
+    const g = glossOf(w);
+    return '  { no: ' + w.no + ', id: ' + JSON.stringify(w.id) + ', w: ' + JSON.stringify(g[0]) +
+      ', idWord: ' + JSON.stringify(w.w) + ', group: ' + JSON.stringify(secOf[w.no] || '') + ' }';
+  });
+  fs.writeFileSync(orderPath,
+    '/* 由 tools/make-sheet.cjs 生成，别手改。切条页用它按问法表顺序填词。 */\n' +
+    'window.SHEET_ORDER = [\n' + lines.join(',\n') + '\n];\n', 'utf8');
+  console.log('顺序: ' + orderPath + '  (' + rows.length + ' 条)');
+
   if (htmlOnly) return;
 
   let chromium;

@@ -61,6 +61,9 @@ jobs:
       # 语言包（建包 / 配对四种策略 / 导入落库 / 跳过与缺失 / 念稿单）
       - run: node tools/check-pack.cjs
 
+      # 切条（长录音解码 / 切分条数 / 按问法表顺序 / 入库即能播 / 劈开与合并）
+      - run: node tools/check-splice.cjs
+
       - name: 留一份运行日志与结果
         if: always()
         uses: actions/upload-artifact@v4

@@ -1320,7 +1320,8 @@
           (r.fail.length ? '；另有 ' + r.fail.length + ' 个文件对不上词条' : ''));
       } else {
         toast('没有导入成功：' + r.fail.length + ' 个文件对不上词条。' +
-          '文件名请用词条 id（maozi.mp3）或词本身（茅子.mp3）。');
+          '文件名请用词条 id（maozi.mp3）或词本身（茅子.mp3）；' +
+          '如果这是一整段长录音，先用顶栏「切条」切开。');
       }
       openBook();
     }, function (e) {
@@ -1417,7 +1418,8 @@
            否则读说明书的人会去界面里找范本音，找不到、也没人告诉他为什么没有。 */
         '<button class="refs-btn plain" id="refToggle">范本音 ' + refN + ' / ' + WORDS.length +
           (refsOpen ? ' ▴' : ' ▾') + '</button>' +
-        '<span class="refs-tip">wav / mp3 可直接拖进这个窗口；文件名用词条 id（<code>maozi.mp3</code>）或词本身（<code>茅子.mp3</code>）</span>' +
+        '<span class="refs-tip">wav / mp3 可直接拖进这个窗口；文件名用词条 id（<code>maozi.mp3</code>）或词本身（<code>茅子.mp3</code>）；' +
+          '一整段长录音先拿去 <a href="splice.html">切条</a></span>' +
         '<input type="file" id="refFile" accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm" multiple hidden>' +
       '</div>' + refListHTML +
       '<div class="book-grid">' + html + '</div>' +

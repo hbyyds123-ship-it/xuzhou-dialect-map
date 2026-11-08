@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>切条 · 乡音册</title>
+<style>
+  :root{
+    --paper:#F3EDE1; --paper2:#E7DFCE; --paper3:#FBF7EE;
+    --ink:#1B1A17; --ink2:#6B655B; --zhu:#A63B2A; --dian:#2C4650;
+    --rule:rgba(27,26,23,.18); --ruleS:rgba(27,26,23,.45);
+    --serif:"Songti SC","SimSun","STSong","Noto Serif SC",serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,monospace;
+  }
+  *{box-sizing:border-box;border-radius:0}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.75 var(--serif)}
+  body{max-width:900px;margin:0 auto;padding:38px 32px 90px}
+
+  header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:12px}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;color:var(--ink2)}
+  h1{margin:6px 0 0;font-size:28px;letter-spacing:.1em}
+  .back{font-size:12px;color:var(--zhu);text-decoration:none;border-bottom:1px dotted var(--zhu);white-space:nowrap}
+  .lede{margin:14px 0 0;font-size:13px;color:var(--ink2);line-height:1.95}
+  .lede b{color:var(--ink);font-weight:400;border-bottom:1px solid var(--ruleS)}
+
+  section{margin-top:30px;border-top:1px solid var(--ink);padding-top:14px}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .sec-h b{font-size:15px;letter-spacing:.12em}
+  .sec-h span{font-size:11.5px;color:var(--ink2)}
+
+  button{font:inherit;cursor:pointer}
+  .btn{font-size:12.5px;padding:7px 14px;border:1px solid var(--ruleS);background:transparent;color:var(--ink)}
+  .btn:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .btn.primary{border-color:var(--zhu);color:var(--zhu)}
+  .btn.primary:hover{background:var(--zhu);color:var(--paper)}
+  .btn.quiet{border-color:transparent;color:var(--ink2);padding:6px 8px}
+  .btn.quiet:hover{color:var(--zhu);background:transparent;border-color:transparent}
+  .btn[disabled]{opacity:.4;cursor:not-allowed}
+
+  .drop{border:1px dashed var(--ruleS);padding:26px 18px;text-align:center;cursor:pointer;background:var(--paper3)}
+  .drop.on{background:var(--paper2);border-color:var(--zhu)}
+  .drop b{display:block;font-size:14px;letter-spacing:.06em}
+  .drop span{display:block;margin-top:6px;font-size:11.5px;color:var(--ink2)}
+  .hint{font-size:11.5px;color:var(--ink2);margin:8px 0 0;line-height:1.85}
+  .warn{color:var(--zhu)}
+
+  canvas{width:100%;height:170px;display:block;background:var(--paper3);border:1px solid var(--rule)}
+
+  .params{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-top:12px}
+  .params label{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink2)}
+  .params input[type=range]{width:150px;accent-color:var(--zhu)}
+  .params output{font-family:var(--mono);font-size:11px;color:var(--ink);min-width:44px}
+
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+  .tools .who{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2)}
+  .tools input[type=text]{width:130px;padding:5px 6px;font:inherit;font-size:12px;background:transparent;
+    border:1px solid var(--rule);border-bottom:1px solid var(--ruleS);color:var(--ink)}
+  .tools input[type=text]:focus{outline:none;border-bottom-color:var(--zhu)}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--rule);vertical-align:middle}
+  th{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink2);font-weight:400;
+     border-bottom:1px solid var(--ruleS);white-space:nowrap}
+  tr.playing{background:var(--paper2)}
+  td.no{font-family:var(--mono);font-size:11px;color:var(--ink2);width:34px}
+  td.dur{font-family:var(--mono);font-size:11px;color:var(--ink2);width:58px;white-space:nowrap}
+  td.act{width:150px;white-space:nowrap;text-align:right}
+  select{font:inherit;font-size:12.5px;padding:4px 6px;background:var(--paper3);color:var(--ink);
+    border:1px solid var(--rule);border-bottom:1px solid var(--ruleS);max-width:100%}
+  select.unset{border-bottom-color:var(--zhu);color:var(--ink2)}
+  .seg-play{font-size:11px;padding:3px 9px;border:1px solid var(--ruleS);background:transparent;color:var(--ink)}
+  .seg-play:hover{background:var(--ink);color:var(--paper)}
+  .seg-del{font-size:11px;padding:3px 7px;border:0;background:transparent;color:var(--ink2)}
+  .seg-del:hover{color:var(--zhu)}
+  .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--ink2);border:1px solid var(--rule);padding:1px 4px}
+  .tag.ok{color:var(--zhu);border-color:var(--zhu)}
+
+  .report{margin-top:12px;font-size:12.5px;line-height:1.9}
+  .report .r-ok{color:var(--zhu)}
+  .report ul{margin:6px 0 0;padding-left:18px;font-size:12px;color:var(--ink2)}
+  .empty{font-size:12px;color:var(--ink2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">乡音册 · 工具</div>
+    <h1>切条</h1>
+  </div>
+  <a class="back" href="index.html">← 回地图</a>
+</header>
+
+<p class="lede">拿着问法表去问一趟，回来常常是<b>一条六分钟的长录音，里面装着五十条</b>。
+  这里把它切开、逐条听、逐条选词 —— 选好的才写进范本音。切分只在本机进行，不上传任何地方。</p>
+
+<section>
+  <div class="sec-h"><b>01 选一段录音</b><span>m4a / mp3 / wav / aac 都行</span></div>
+  <div class="drop" id="drop">
+    <b>点这里选文件，或者把录音拖进来</b>
+    <span>手机自带录音机录的就能用；微信要传「文件」不要传语音</span>
+  </div>
+  <input type="file" id="file" accept="audio/*,.mp3,.m4a,.wav,.aac,.ogg,.flac,.webm" hidden>
+  <p class="hint" id="fileInfo"></p>
+</section>
+
+<section id="secWave" hidden>
+  <div class="sec-h"><b>02 切点</b><span id="waveInfo"></span></div>
+  <canvas id="wave"></canvas>
+  <div class="params">
+    <label>灵敏度 <input type="range" id="th" min="-62" max="-18" step="1"><output id="thV"></output></label>
+    <label>最短停顿 <input type="range" id="minSil" min="0.15" max="1.2" step="0.05"><output id="minSilV"></output></label>
+    <label>最短一条 <input type="range" id="minSeg" min="0.2" max="2" step="0.1"><output id="minSegV"></output></label>
+    <button class="btn quiet" id="recut">按新参数重切</button>
+  </div>
+  <p class="hint">竖线是切点。切碎了就把「最短停顿」调大，几条黏在一起就调小；灵敏度越高越容易把呼吸声当成话。</p>
+</section>
+
+<section id="secSegs" hidden>
+  <div class="sec-h"><b>03 逐条对词</b><span id="segInfo"></span></div>
+  <div class="tools">
+    <button class="btn" id="fillOrder">按问法表顺序填</button>
+    <button class="btn" id="clearAll">清空选择</button>
+    <label class="who">谁念的 <input type="text" id="speaker" placeholder="可留空"></label>
+  </div>
+  <p class="hint">每一条先点 <b>▶</b> 听一遍，再在下拉里选它说的是哪个词。
+    一口气念了好几条的整块，用 <b>劈开</b> 从中间切开，劈歪了就 <b>并上一条</b> 合回去。
+    <span class="warn">机器不猜归属</span> —— 猜错会把错位的录音当真话说下去，比缺一条坏得多。</p>
+  <table>
+    <thead><tr><th>#</th><th>时长</th><th>听</th><th>说的是哪个词</th><th></th></tr></thead>
+    <tbody id="segBody"></tbody>
+  </table>
+</section>
+
+<section id="secSave" hidden>
+  <div class="sec-h"><b>04 入库</b><span>只写「已经选了词」的那几条</span></div>
+  <div class="tools">
+    <button class="btn primary" id="save">写入范本音</button>
+    <button class="btn" id="dl">下载全部 .wav</button>
+  </div>
+  <p class="hint">写进去的范本音只存在这台电脑的浏览器里；地图词条与学习侧会优先播它。
+    「下载全部」给你一份 wav，可以放进 <code>data/ref-audio/</code> 随包分发。</p>
+  <div class="report" id="report"></div>
+</section>
+
+<script src="data/sheet-order.js"></script>
+<script src="features/refs.js"></script>
+<script src="features/splice.js"></script>
+<script>
+(function () {
+  'use strict';
+  var S = window.XZ.splice;
+  var R = window.XZ.refs;
+  var ORDER = window.SHEET_ORDER || [];
+
+  var state = {
+    file: null, samples: null, sr: 16000,
+    an: null, segs: [], playing: -1,
+    audio: null, url: ''
+  };
+
+  var $ = function (s) { return document.querySelector(s); };
+  var esc = function (t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+
+  /* ---------------- 选文件 ---------------- */
+  var drop = $('#drop'), fileInput = $('#file');
+  drop.addEventListener('click', function () { fileInput.click(); });
+  ['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('on'); });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('on'); });
+  });
+  drop.addEventListener('drop', function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) load(f);
+  });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) load(fileInput.files[0]);
+    fileInput.value = '';
+  });
+
+  function load(file) {
+    $('#fileInfo').textContent = '正在解码 ' + file.name + ' …';
+    state.file = file;
+    var fr = new FileReader();
+    fr.onerror = function () { $('#fileInfo').innerHTML = '<span class="warn">这个文件读不出来。</span>'; };
+    fr.onload = function () {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { $('#fileInfo').innerHTML = '<span class="warn">这个浏览器不支持解码音频。</span>'; return; }
+      var ac = new AC();
+      ac.decodeAudioData(fr.result).then(function (ab) {
+        var mono = S.toMono(ab, 16000);
+        state.samples = mono.data; state.sr = mono.sr;
+        var auto = S.autoOpts(mono.data, mono.sr);
+        $('#th').value = Math.round(auto.threshold);
+        $('#minSil').value = auto.minSil;
+        $('#minSeg').value = auto.minSeg;
+        state.an = S.analyze(mono.data, mono.sr, { threshold: auto.threshold, minSil: auto.minSil, minSeg: auto.minSeg });
+        buildSegs();
+        $('#fileInfo').innerHTML = '<b>' + esc(file.name) + '</b> · ' + fmt(mono.data.length / mono.sr) +
+          ' · 解码后单声道 ' + Math.round(mono.sr) + 'Hz（原 ' + ab.sampleRate + 'Hz）';
+        show(true);
+        render();
+      }).catch(function (e) {
+        $('#fileInfo').innerHTML = '<span class="warn">这个格式解不开（' + esc(e && e.message || 'decode') +
+          '）。转成 mp3 或 wav 再试。</span>';
+      }).then(function () { try { ac.close(); } catch (e) {} });
+    };
+    fr.readAsArrayBuffer(file);
+  }
+
+  function show(on) {
+    ['#secWave', '#secSegs', '#secSave'].forEach(function (s) { $(s).hidden = !on; });
+  }
+
+  function fmt(sec) {
+    sec = Math.max(0, sec || 0);
+    var m = Math.floor(sec / 60), s = sec - m * 60;
+    return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  }
+
+  /* ---------------- 切 ---------------- */
+  function buildSegs(keep) {
+    var prev = keep ? state.segs : [];
+    state.segs = state.an.segs.map(function (g, i) {
+      return { a: g.a, b: g.b, wordId: prev[i] ? prev[i].wordId || '' : '' };
+    });
+  }
+
+  function segsWithWord() { return state.segs.filter(function (s) { return s.wordId; }); }
+
+  function render() {
+    var an = state.an;
+    $('#waveInfo').textContent = an.segs.length + ' 条 · ' + fmt(an.dur) +
+      ' · 噪声底 ' + an.floor.toFixed(1) + 'dB · 阈值 ' + an.th.toFixed(1) + 'dB';
+    $('#segInfo').textContent = state.segs.length + ' 条，已选词 ' + segsWithWord().length + ' 条';
+    $('#thV').textContent = Math.round(an.th) + ' dB';
+    $('#minSilV').textContent = (+$('#minSil').value).toFixed(2) + ' s';
+    $('#minSegV').textContent = (+$('#minSeg').value).toFixed(1) + ' s';
+    $('#save').textContent = '写入范本音（' + segsWithWord().length + ' 条）';
+    $('#save').disabled = !segsWithWord().length;
+    drawWave();
+    renderSegs();
+  }
+
+  function drawWave() {
+    var c = $('#wave');
+    var w = c.clientWidth || 800, h = 170;
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    c.width = Math.round(w * dpr); c.height = Math.round(h * dpr);
+    var ctx = c.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    var an = state.an;
+    var mid = h / 2;
+    /* 阈值线 */
+    ctx.strokeStyle = 'rgba(27,26,23,.25)';
+    ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke();
+
+    var n = an.rms.length;
+    var px = Math.max(1, Math.floor(w / 900));
+    for (var x = 0; x < w; x++) {
+      var i0 = Math.floor(x / w * n), i1 = Math.max(i0 + 1, Math.floor((x + 1) / w * n));
+      var peak = 0;
+      for (var i = i0; i < i1 && i < n; i++) if (an.rms[i] > peak) peak = an.rms[i];
+      var db = 20 * Math.log10(Math.max(peak, 1e-8));
+      var amp = Math.max(0, Math.min(1, (db + 60) / 60));
+      var hh = Math.max(1, amp * (h / 2 - 6));
+      ctx.fillStyle = db >= an.th ? 'rgba(27,26,23,.62)' : 'rgba(27,26,23,.18)';
+      ctx.fillRect(x, mid - hh, px, hh * 2);
+    }
+
+    /* 切点 */
+    ctx.strokeStyle = '#A63B2A';
+    ctx.lineWidth = 1;
+    state.segs.forEach(function (g) {
+      var x = Math.round(g.a / an.dur * w) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    });
+    var xe = Math.round(an.dur / an.dur * w) - 0.5;
+    ctx.beginPath(); ctx.moveTo(xe, 0); ctx.lineTo(xe, h); ctx.stroke();
+  }
+
+  function optsHTML(cur) {
+    var html = '<option value="">（还没选）</option>';
+    var lastGroup = '';
+    ORDER.forEach(function (o) {
+      var g = o.group || '';
+      if (g !== lastGroup) {
+        if (lastGroup) html += '</optgroup>';
+        html += '<optgroup label="' + esc(g) + '">';
+        lastGroup = g;
+      }
+      html += '<option value="' + esc(o.id) + '"' + (o.id === cur ? ' selected' : '') + '>' +
+        (o.no < 10 ? '0' : '') + o.no + ' · ' + esc(o.w) + (o.idWord && o.idWord !== o.w ? '（' + esc(o.idWord) + '）' : '') +
+        '</option>';
+    });
+    if (lastGroup) html += '</optgroup>';
+    return html;
+  }
+
+  function renderSegs() {
+    var body = $('#segBody');
+    body.innerHTML = state.segs.map(function (g, i) {
+      return '<tr data-i="' + i + '"' + (state.playing === i ? ' class="playing"' : '') + '>' +
+        '<td class="no">' + (i + 1 < 10 ? '0' : '') + (i + 1) + '</td>' +
+        '<td class="dur">' + (g.b - g.a).toFixed(1) + 's</td>' +
+        '<td><button class="seg-play" data-play="' + i + '">▶</button></td>' +
+        '<td><select class="' + (g.wordId ? '' : 'unset') + '" data-pick="' + i + '">' + optsHTML(g.wordId) + '</select></td>' +
+        '<td class="act"><button class="btn quiet" data-split="' + i + '" title="从中间劈成两条">劈开</button>' +
+          '<button class="btn quiet" data-merge="' + i + '"' + (i === 0 ? ' disabled' : '') + '>' +
+          '并上一条</button><button class="seg-del" data-del="' + i + '" title="删掉这一段">✕</button></td>' +
+        '</tr>';
+    }).join('');
+  }
+
+  $('#segBody').addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target : null;
+    if (!t) return;
+    if (t.hasAttribute('data-play')) { playSeg(+t.getAttribute('data-play')); return; }
+    if (t.hasAttribute('data-del')) {
+      state.segs.splice(+t.getAttribute('data-del'), 1);
+      state.playing = -1;
+      render(); return;
+    }
+    if (t.hasAttribute('data-split')) {
+      var j = +t.getAttribute('data-split');
+      var two = S.splitSeg(state.segs[j]);
+      two[0].wordId = state.segs[j].wordId || '';
+      two[1].wordId = '';
+      state.segs.splice(j, 1, two[0], two[1]);
+      state.playing = -1;
+      render();
+      return;
+    }
+    if (t.hasAttribute('data-merge')) {
+      var i = +t.getAttribute('data-merge');
+      if (i > 0) {
+        var prev = state.segs[i - 1], cur = state.segs[i];
+        cur.a = prev.a;
+        if (!cur.wordId) cur.wordId = prev.wordId || '';
+        state.segs.splice(i - 1, 1);
+        state.playing = -1;
+        render();
+      }
+    }
+  });
+  $('#segBody').addEventListener('change', function (e) {
+    var s = e.target;
+    if (s && s.hasAttribute('data-pick')) {
+      var i = +s.getAttribute('data-pick');
+      state.segs[i].wordId = s.value;
+      render();
+    }
+  });
+
+  function playSeg(i) {
+    stopPlay();
+    if (!state.segs[i]) return;
+    var pcm = S.cut(state.samples, state.sr, state.segs[i]);
+    var blob = S.encodeWav(pcm, state.sr);
+    state.url = URL.createObjectURL(blob);
+    var a = new Audio(state.url);
+    state.audio = a;
+    state.playing = i;
+    renderSegs();
+    a.onended = function () { state.playing = -1; renderSegs(); };
+    a.play().catch(function () {});
+  }
+  function stopPlay() {
+    if (state.audio) { try { state.audio.pause(); } catch (e) {} }
+    if (state.url) { try { URL.revokeObjectURL(state.url); } catch (e) {} }
+    state.audio = null; state.url = ''; state.playing = -1;
+  }
+
+  /* ---------------- 参数 ---------------- */
+  function recut() {
+    if (!state.samples) return;
+    var had = segsWithWord().length;
+    if (had && !window.confirm('重新切会把已选好的 ' + had + ' 个词清掉。要继续吗？')) return;
+    state.an = S.analyze(state.samples, state.sr, {
+      threshold: +$('#th').value,
+      minSil: +$('#minSil').value,
+      minSeg: +$('#minSeg').value
+    });
+    buildSegs(false);
+    state.playing = -1;
+    render();
+  }
+  $('#recut').addEventListener('click', recut);
+  ['th', 'minSil', 'minSeg'].forEach(function (id) {
+    $('#' + id).addEventListener('input', function () {
+      $('#thV').textContent = $('#th').value + ' dB';
+      $('#minSilV').textContent = (+$('#minSil').value).toFixed(2) + ' s';
+      $('#minSegV').textContent = (+$('#minSeg').value).toFixed(1) + ' s';
+    });
+  });
+
+  /* ---------------- 按顺序填 ---------------- */
+  $('#fillOrder').addEventListener('click', function () {
+    var k = 0;
+    state.segs.forEach(function (g) {
+      if (k < ORDER.length) g.wordId = ORDER[k].id;
+      k++;
+    });
+    render();
+  });
+  $('#clearAll').addEventListener('click', function () {
+    state.segs.forEach(function (g) { g.wordId = ''; });
+    render();
+  });
+
+  /* ---------------- 入库 ---------------- */
+  $('#save').addEventListener('click', function () {
+    var picked = [];
+    state.segs.forEach(function (g, i) { if (g.wordId) picked.push({ i: i, g: g }); });
+    if (!picked.length) return;
+    var by = ($('#speaker').value || '').trim();
+    var report = $('#report');
+    report.innerHTML = '正在写 ' + picked.length + ' 条…';
+
+    var ok = [], fail = [], over = [];
+    picked.reduce(function (p, it) {
+      return p.then(function () {
+        var g = it.g;
+        var existed = R.has(g.wordId);
+        var pcm = S.cut(state.samples, state.sr, g);
+        var blob = S.encodeWav(pcm, state.sr);
+        var name = g.wordId + '.wav';
+        var file = new File([blob], name, { type: 'audio/wav' });
+        return R.add(g.wordId, file, { name: name, by: by, packId: 'splice' }).then(function () {
+          var w = ORDER.filter(function (o) { return o.id === g.wordId; })[0];
+          ok.push((w ? w.w : g.wordId) + (existed ? '（覆盖）' : ''));
+          if (existed) over.push(w ? w.w : g.wordId);
+        }, function () {
+          fail.push((it.i + 1) + ' 号');
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      /* 必须 refresh：写入后 has()/list() 读的是缓存，不刷新的话
+         这一页自己的"已有范本音"判断还是旧的，回到地图才看得见 */
+      return R.refresh().then(function () { return null; }, function () { return null; });
+    }).then(function () {
+      var rest = state.segs.length - picked.length;
+      report.innerHTML = '<div class="r-ok">写好了 ' + ok.length + ' 条范本音：' + esc(ok.join('、')) + '</div>' +
+        (rest ? '<div class="hint">另有 ' + rest + ' 条没选词，没有写 —— 它们还在上面，随时可以选。</div>' : '') +
+        (fail.length ? '<ul><li class="warn">写失败：' + esc(fail.join('、')) + '（可能是本机存储满了）</li></ul>' : '');
+      $('#segInfo').textContent = state.segs.length + ' 条，已选词 ' + segsWithWord().length + ' 条';
+    });
+  });
+
+  /* 下载全部：给一份能放进 data/ref-audio/ 的 wav */
+  $('#dl').addEventListener('click', function () {
+    var picked = state.segs.filter(function (g) { return g.wordId; });
+    if (!picked.length) return;
+    picked.forEach(function (g, n) {
+      setTimeout(function () {
+        var pcm = S.cut(state.samples, state.sr, g);
+        var blob = S.encodeWav(pcm, state.sr);
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = g.wordId + '.wav';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      }, n * 350);
+    });
+  });
+
+  window.addEventListener('resize', function () { if (state.an) drawWave(); });
+})();
+</script>
+</body>
+</html>

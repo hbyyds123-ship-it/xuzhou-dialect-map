@@ -183,7 +183,8 @@
     <li><b>先开一个包</b>（下面第 03 节）
       <i>选好词、填上发音人，得到两样东西：一份清单 <code>.json</code>、一张念稿单。</i></li>
     <li><b>把念稿单打印出来（或截图发过去）</b>
-      <i>纸上每一行是一个词：编号、词、拼音、意思，最后留一格空着写"你家怎么说"。</i></li>
+      <i>纸上每一行问一句普通话（中午、昨天、玉米面粥），后面跟一句普通话例句，
+        最后留一格空着写"你家怎么说"——<b>不印本卷的方言词</b>，所以这张纸拿到哪个县都能用。</i></li>
     <li><b>让对方照着念，一条录一段</b>
       <i>手机自带录音机就行。iOS 是「语音备忘录」，安卓多半叫「录音机」。不用联网、不用注册。</i></li>
     <li><b>把音频发回来，导进这一页</b>
@@ -191,7 +192,8 @@
   </ol>
 
   <div class="rules">
-    <div class="rule"><b>规矩 1</b><span><b>一条一段</b>，按 01、02 的顺序。连成一整段的录音要在中间切，切错了就对不上词。</span></div>
+    <div class="rule"><b>规矩 1</b><span><b>一条一段</b>，按 01、02 的顺序。要是一口气录成了一整段，
+    用顶栏的 <a href="splice.html" style="color:var(--zhu)">切条</a> 页把它切开再导 —— 切错了就对不上词。</span></div>
     <div class="rule"><b>规矩 2</b><span><b>开头先说一句</b>："我是王秀兰，沛县张寨人，1950 年生。" 这句话本身就是这条录音的身份证。</span></div>
     <div class="rule"><b>规矩 3</b><span><b>不认识就跳过</b>，别硬念。跳过的词空着，比编一条假的有用得多 —— 这一卷的价值在"真"。</span></div>
     <div class="rule"><b>规矩 4</b><span><b>安静、离嘴一拳</b>。关掉电视和风扇，手机别捂着，别在院子里录（风噪救不回来）。</span></div>
@@ -243,7 +245,7 @@
 
 <!-- ============ 04 念稿单 ============ -->
 <section id="secSheet">
-  <div class="sec-h"><span class="no">04</span><b>念稿单</b><span>打印出来给发音人；下面这块就是打印出来的样子</span></div>
+  <div class="sec-h"><span class="no">04</span><b>念稿单</b><span>普通话问 · 家乡话答；下面这块就是打印出来的样子</span></div>
   <div class="no-print acts" style="margin:0 0 12px">
     <button id="btnPrint2">打印这一页</button>
   </div>
@@ -301,6 +303,7 @@
 <script src="data/volume.js"></script>
 <script src="data/atlas.js"></script>
 <script src="data/refs.js"></script>
+<script src="data/sheet-order.js"></script>
 <script src="features/volumes.js"></script>
 <script src="features/refs.js"></script>
 <script src="features/pack.js"></script>

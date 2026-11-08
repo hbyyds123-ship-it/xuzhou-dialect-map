@@ -29,6 +29,47 @@
   var MAX_BYTES = 24 * 1024 * 1024;
   var MAX_ITEMS = 500;
 
+  /* ---------------- 问法：普通话问，家乡话答 ----------------
+     念稿单上印的不能是"这一卷的方言词"—— 那样这张纸只能在这一卷用，
+     换个县、换个人就看不懂在问什么。所以印普通话（中午 / 昨天 / 玉米面粥），
+     让念的人用自己的话说出来；这段音频回到软件里，仍记在这个词条名下。
+
+     问法取自 data/sheet-order.js（tools/make-sheet.cjs 生成，与纸质问法表同源）。
+     没有对照的词（用户自己开的卷）退回它自己的释义 —— 释义本来就多是普通话。 */
+  var ASK = {};
+  (function () {
+    var list = (typeof window !== 'undefined' && window.SHEET_ORDER) || [];
+    list.forEach(function (o) {
+      if (o && o.id) ASK[o.id] = { q: String(o.w || ''), e: String(o.eg || '') };
+    });
+  })();
+
+  /**
+   * 念稿单上的编号顺序 = 纸质问法表的顺序。
+   *
+   * 为什么必须统一：切条页的「按问法表顺序填」用的就是 data/sheet-order.js。
+   * 如果这一包按词表顺序印、切条按话题顺序填，两条纸一对就全错位，
+   * 而错位是看不出来的 —— 声音听上去都对，只是安到了别的词上。
+   * 只有整卷每个词都在顺序表里才重排；用户自己开的卷没有对照，保持原样。
+   */
+  function orderWords(words) {
+    var list = (typeof window !== 'undefined' && window.SHEET_ORDER) || [];
+    if (!list.length || !words.length) return words;
+    var no = {};
+    list.forEach(function (o) { if (o && o.id) no[o.id] = o.no; });
+    var all = words.every(function (w) { return !!no[w.id]; });
+    if (!all) return words;
+    return words.slice().sort(function (a, b) { return no[a.id] - no[b.id]; });
+  }
+
+  /** 一条词在纸面上"问什么"。永远给得出东西，最差是词本身 */
+  function askOf(it) {
+    var a = it && ASK[it.wordId];
+    if (a && a.q) return a;
+    var m = String((it && it.meaning) || '').split(/[、，,；;]/)[0].trim();
+    return { q: m || String((it && it.word) || ''), e: '' };
+  }
+
   /* ---------------- 当前这一卷 ---------------- */
 
   /** 当前卷（用户卷优先，没有就是样板房第 1 卷） */
@@ -86,7 +127,7 @@
     input = input || {};
     var vol = input.volume || currentVolume();
     var sp = input.speaker || {};
-    var words = input.words || currentWords();
+    var words = orderWords(input.words || currentWords());
     return {
       format: FORMAT,
       packId: 'pk' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
@@ -101,12 +142,16 @@
       },
       license: String(input.license || ''),
       items: words.map(function (w, i) {
+        var ask = askOf({ wordId: String(w.id), meaning: w.meaning, word: w.w });
         return {
           no: i + 1,
           wordId: String(w.id),
           word: String(w.w || ''),
           py: String(w.py || ''),
           meaning: String(w.meaning || ''),
+          /* 纸面上问的那句普通话（念稿单用；导入时完全不需要它） */
+          ask: ask.q,
+          askEg: ask.e,
           /* 默认就把"建议文件名"写进去：配对时这是第一优先，最不会错 */
           file: pad2(i + 1) + '.m4a',
           note: ''
@@ -459,12 +504,14 @@
     if (sp.birthYear) bits.push(sp.birthYear + ' 年生');
     if (sp.hometown) bits.push('老家 ' + sp.hometown);
     if (sp.years) bits.push('在本地住了 ' + sp.years + ' 年');
+    if (sp.name) bits.unshift(sp.name);
 
     var rows = doc.items.map(function (it) {
+      var ask = askOf(it);
       return '<tr>' +
         '<td class="c-no">' + pad2(it.no) + '</td>' +
-        '<td class="c-w">' + esc(it.word) + (it.py ? '<i>' + esc(it.py) + '</i>' : '') + '</td>' +
-        '<td class="c-m">' + esc(it.meaning || '') + '</td>' +
+        '<td class="c-w">' + esc(ask.q) + '</td>' +
+        '<td class="c-m">' + esc(ask.e || '') + '</td>' +
         '<td class="c-k"></td>' +
         '</tr>';
     }).join('');
@@ -472,24 +519,26 @@
     return '<div class="sheet">' +
       '<div class="sh-head">' +
         '<div><div class="sh-eyebrow">乡音册 · 念稿单</div>' +
-        '<h2>' + esc((doc.volume && doc.volume.name) || '') + ' · ' + esc(sp.name || '（还没写发音人）') + '</h2>' +
-        '<p class="sh-sub">' + esc((doc.volume && doc.volume.dialect) || '') +
+        '<h2>普通话问 · 家乡话答</h2>' +
+        '<p class="sh-sub">第 ' + esc(doc.volume && doc.volume.no) + ' 卷' +
+          ((doc.volume && doc.volume.name) ? ' · ' + esc(doc.volume.name) : '') +
           (bits.length ? '　|　' + esc(bits.join('　|　')) : '') + '</p></div>' +
         '<div class="sh-code"><span>包号</span><b>' + esc(doc.packId || '') + '</b></div>' +
       '</div>' +
       '<div class="sh-how">' +
         '<b>怎么念</b>' +
-        '<span>① 一条录一段，按 01、02 的顺序来。</span>' +
-        '<span>② 每条说完停一下再停录音。</span>' +
-        '<span>③ <b>不认识、不这么说的词就跳过</b> —— 空着比编一条有用。</span>' +
+        '<span>① 一条录一段，按 01、02 的顺序来；念完一条停一下。</span>' +
+        '<span>② 看「问的是」那句普通话，<b>用你们那儿的话说一遍</b>；再把例句整句说一遍。</span>' +
+        '<span>③ 你们那儿不这么说、或者没这东西，<b>直接跳过</b> —— 空着比编一条有用。</span>' +
         '<span>④ 录完把音频按顺序发回来，<b>不用改名</b>。</span>' +
       '</div>' +
       '<table class="sh-tab"><thead><tr>' +
-        '<th class="c-no">号</th><th class="c-w">词</th><th class="c-m">意思</th><th class="c-k">它在你家怎么说</th>' +
+        '<th class="c-no">号</th><th class="c-w">问的是</th>' +
+        '<th class="c-m">例句（也用家乡话说一遍）</th><th class="c-k">你家怎么说</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>' +
       '<p class="sh-foot">' + doc.items.length + ' 条 · 念完大约 ' +
         Math.max(1, Math.round(doc.items.length * 0.35)) + ' 分钟 · ' +
-        '这一页是 ' + esc((doc.volume && doc.volume.name) || '') + ' 的 ' + doc.items.length + ' 个词</p>' +
+        '问的是普通话，答的是你家的话 —— 这张纸拿到哪个县、哪个村，都能用</p>' +
       '</div>';
   }
 

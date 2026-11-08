@@ -351,7 +351,8 @@ async function main() {
   const lines = rows.map((w) => {
     const g = glossOf(w);
     return '  { no: ' + w.no + ', id: ' + JSON.stringify(w.id) + ', w: ' + JSON.stringify(g[0]) +
-      ', idWord: ' + JSON.stringify(w.w) + ', group: ' + JSON.stringify(secOf[w.no] || '') + ' }';
+      ', idWord: ' + JSON.stringify(w.w) + ', eg: ' + JSON.stringify(g[1] || '') +
+      ', group: ' + JSON.stringify(secOf[w.no] || '') + ' }';
   });
   fs.writeFileSync(orderPath,
     '/* 由 tools/make-sheet.cjs 生成，别手改。切条页用它按问法表顺序填词。 */\n' +

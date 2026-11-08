@@ -118,6 +118,9 @@ function wavBuf(freq, secs, sr) {
         firstNo:doc.items[0]&&doc.items[0].no, firstFile:doc.items[0]&&doc.items[0].file,
         lastNo:doc.items[doc.items.length-1]&&doc.items[doc.items.length-1].no,
         firstWord:doc.items[0]&&doc.items[0].word,
+        firstAsk:doc.items[0]&&doc.items[0].ask,
+        firstAskEg:doc.items[0]&&doc.items[0].askEg,
+        allAsk:doc.items.every(i=>!!i.ask),
         hasId:doc.items.every(i=>!!i.wordId),
         fmt:doc.format, sheet:!!document.querySelector('.sheet'),
         row0:(rows[0]?rows[0].innerText:'').replace(/\\s+/g,' ').trim()
@@ -128,14 +131,28 @@ function wavBuf(freq, secs, sr) {
       p1.firstNo === 1 && p1.lastNo === p1.items && p1.firstFile === '01.m4a' && p1.hasId && p1.fmt === 'xiangyince-pack/1',
       JSON.stringify(p1 && { ...p1, firstWord: undefined }));
 
-    check('P2', '念稿单：渲染出与条目同数量的行，第一行带编号与该词',
+    check('P2', '念稿单问的是普通话（不是本卷方言词），且带普通话例句',
       p2ok(p1),
       `行数=${p1 && p1.rows} 条目=${p1 && p1.items} 首行「${p1 && p1.row0}」`);
 
+    /* 这张纸要能发到任何一个县：上面印的必须是普通话问法。
+       所以"首行含普通话、且不含本卷方言词"是硬判据，不是文案偏好。 */
     function p2ok(x) {
       return !!(x && !x.__err && x.sheet && x.rows === x.items && x.items > 0 &&
-        x.row0.indexOf('01') === 0 && x.firstWord && x.row0.indexOf(x.firstWord) > 0);
+        x.row0.indexOf('01') === 0 && x.firstAsk && x.row0.indexOf(x.firstAsk) > 0 &&
+        x.firstAsk !== x.firstWord && x.row0.indexOf(x.firstWord) < 0);
     }
+
+    /* 包的编号顺序必须与纸质问法表一致 —— 否则"照纸念的录音"回来一导就错位 */
+    const p13 = await ev(`(()=>{
+      const ids=(window.SHEET_ORDER||[]).map(o=>o.id);
+      const got=window.XZ.pack.buildPack({}).items.map(i=>i.wordId);
+      return { same: JSON.stringify(ids)===JSON.stringify(got), n:ids.length, gotN:got.length,
+               head: got.slice(0,3), want: ids.slice(0,3) };
+    })()`, true);
+    check('P13', '建包的编号顺序 = data/sheet-order.js 的顺序（切条页按同一张表填词）',
+      p13 && !p13.__err && p13.same === true && p13.n === p13.gotN,
+      JSON.stringify(p13));
 
     /* ========== 纯函数：编号识别（P3） ========== */
     const p3 = await ev(`(()=>{

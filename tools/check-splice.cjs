@@ -264,6 +264,26 @@ function suite(sr) {
       Math.abs(s10.sum - s10.firstDur) < 0.15 && s10.firstSel === 'shangwu' && s10.secondSel === '',
       JSON.stringify(s10));
 
+    /* ========== S11 语言包只收音频 → 把文件递给切条 ========== */
+    await go(`http://127.0.0.1:${PORT}/pack.html`, 2600);
+    await setFile('#pick', wavPath);
+    await sleep(2600);
+    const s11a = await ev(`(()=>{
+      const r=document.getElementById('rep');
+      return { text:(r?r.innerText:'').replace(/\\s+/g,' ').slice(0,90),
+               link: !!(r && r.querySelector('a[href="splice.html"]')) };
+    })()`, true);
+    await ev(`(()=>{const a=document.querySelector('#rep a[href="splice.html"]'); if(a) a.click(); return 1})()`, true);
+    await sleep(4500);
+    const s11b = await ev(`(()=>({
+      rows: document.querySelectorAll('#segBody tr').length,
+      rows2: document.querySelectorAll('#segBody tr').length,
+      info: (document.getElementById('fileInfo')||{}).textContent
+    }))()`, true);
+    check('S11', '语言包只收音频时说清缺清单，并把这段录音递给切条（不用再找一次文件）',
+      s11a && s11a.link === true && s11b && s11b.rows === 3,
+      JSON.stringify({ a: s11a, b: s11b }));
+
     /* ========== S9 地图顶栏入口 ========== */
     await go(`http://127.0.0.1:${PORT}/index.html`, 3000);
     const s9 = await ev(`(()=>{

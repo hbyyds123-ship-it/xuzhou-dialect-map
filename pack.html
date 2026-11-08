@@ -305,6 +305,7 @@
 <script src="data/sheet-order.js"></script>
 <script src="features/volumes.js"></script>
 <script src="features/refs.js"></script>
+<script src="features/inbox.js"></script>
 <script src="features/pack.js"></script>
 <script>
 (function () {
@@ -500,9 +501,32 @@
     P.splitInputs(files).then(function (inp) {
       if (inp.parseError) { renderReport({ ok: false, errors: [{ msg: inp.parseError }] }); return; }
       if (!inp.doc) {
+        /* 只给了一段录音：他要做的事是"切开"，不是"回去重新找文件"。
+           把刚选的那个文件暂存起来，切条页取走直接用。 */
+        var audioOnly = (inp.files || []).filter(function (f) {
+          return /^audio\//.test(f.type || '') || /\.(m4a|mp3|wav|aac|ogg|flac|webm)$/i.test(f.name || '');
+        });
+        if (audioOnly.length === 1 && window.XZ && window.XZ.inbox) {
+          window.XZ.inbox.put(audioOnly[0]).then(function () {
+            $('#rep').innerHTML =
+              '<div class="rep-sum bad">这里收的是"清单 + 音频"：只给一段录音，程序不知道该把哪一段放进哪个词。</div>' +
+              '<p class="hint">一条一段的短录音，按词命名（maozi.mp3 / 茅子.mp3）走「词条册」；' +
+              '一整段长录音（一口气念了几十条那种）要先切开 —— ' +
+              '<b>刚才选的那个文件已经带过去了，点下面这个按钮继续。</b></p>' +
+              '<p style="margin:12px 0 0"><a href="splice.html" ' +
+              'style="display:inline-block;border:1px solid var(--zhu);color:var(--zhu);' +
+              'padding:6px 14px;text-decoration:none;font-size:12.5px">去切条 →</a></p>';
+          }, function () {
+            renderReport({ ok: false, errors: [
+              { msg: '没有找到清单（.json），也没能把这段录音交给切条页。请直接打开顶栏的「切条」。' }
+            ] });
+          });
+          return;
+        }
         renderReport({ ok: false, errors: [
           { msg: '没有找到清单（.json）。只给音频文件的话，程序不知道该把哪一段放进哪个词。' },
-          { msg: '要去掉清单也可以：把文件按词命名（' + 'maozi.mp3' + ' 或 茅子.mp3），到「词条册 → 导入录音文件」那条老路。' }
+          { msg: '一条一段的音频，按词命名（maozi.mp3 或 茅子.mp3）可以走「词条册 → 导入录音文件」；' +
+                 '一整段长录音（一口气念了几十条那种），先到「切条」页切开再导。' }
         ] });
         return;
       }

@@ -140,10 +140,12 @@
   </div>
   <p class="hint">写进去的范本音只存在这台电脑的浏览器里；地图词条与学习侧会优先播它。
     「下载全部」给你一份 wav，可以放进 <code>data/ref-audio/</code> 随包分发。</p>
+  <p class="hint" id="saveHint"></p>
   <div class="report" id="report"></div>
 </section>
 
 <script src="data/sheet-order.js"></script>
+<script src="features/inbox.js"></script>
 <script src="features/refs.js"></script>
 <script src="features/splice.js"></script>
 <script>
@@ -242,8 +244,15 @@
     $('#thV').textContent = Math.round(an.th) + ' dB';
     $('#minSilV').textContent = (+$('#minSil').value).toFixed(2) + ' s';
     $('#minSegV').textContent = (+$('#minSeg').value).toFixed(1) + ' s';
-    $('#save').textContent = '写入范本音（' + segsWithWord().length + ' 条）';
-    $('#save').disabled = !segsWithWord().length;
+    var picked = segsWithWord().length;
+    $('#save').textContent = '写入范本音（' + picked + ' 条）';
+    $('#save').disabled = !picked;
+    /* 按钮灰着却不说话，是最容易让人以为"导不了"的地方 */
+    if ($('#saveHint')) {
+      $('#saveHint').innerHTML = picked
+        ? '已选 <b>' + picked + '</b> 条，可以写了；还没选词的 ' + (state.segs.length - picked) + ' 条不会被动。'
+        : '<span class="warn">还没选词</span> —— 先在下面每条的「说的是哪个词」里选一个，这个按钮才会亮。';
+    }
     drawWave();
     renderSegs();
   }
@@ -471,6 +480,15 @@
       }, n * 350);
     });
   });
+
+  /* 从「语言包」那边递过来的录音：直接开，不让用户再找一遍文件 */
+  if (window.XZ && window.XZ.inbox) {
+    window.XZ.inbox.take().then(function (f) {
+      if (!f) return;
+      $('#fileInfo').textContent = '从「语言包」带过来的：' + (f.name || '录音') + '，正在解码…';
+      load(f);
+    });
+  }
 
   window.addEventListener('resize', function () { if (state.an) drawWave(); });
 })();

@@ -52,7 +52,7 @@ const ASSETS = [
   'features/quiz.css', 'features/scene.css',
   'features/sample.js', 'features/refs.js', 'features/quiz.js', 'features/scene.js',
   'features/volumes.js', 'features/vol-board.js', 'features/about-vol.js', 'features/pack.js',
-  'features/splice.js',
+  'features/splice.js', 'features/inbox.js',
   'js/app.js',
   'core/store.js', 'core/router.js', 'core/volume.js',
   'data/atlas.js', 'data/refs.js', 'data/volume.js', 'data/geo.xuzhou.js', 'data/sheet-order.js',

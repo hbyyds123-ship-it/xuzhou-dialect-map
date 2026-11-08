@@ -499,13 +499,10 @@
   /** 可打印的一页纸：发音人照着念，一条一格 */
   function sheetHTML(doc) {
     if (!doc || !doc.items) return '';
-    var sp = doc.speaker || {};
-    var bits = [];
-    if (sp.birthYear) bits.push(sp.birthYear + ' 年生');
-    if (sp.hometown) bits.push('老家 ' + sp.hometown);
-    if (sp.years) bits.push('在本地住了 ' + sp.years + ' 年');
-    if (sp.name) bits.unshift(sp.name);
-
+    /* 纸面上不印"这一卷叫什么、谁念的"。
+       理由和去掉发音人栏一样：拿到纸的人只管念 —— 卷名、地名、发音人信息
+       都只是"这段录音归到哪"的标记，记在清单里就够了，印在纸上反而让
+       这张纸看起来只属于某一个地方。 */
     var rows = doc.items.map(function (it) {
       var ask = askOf(it);
       return '<tr>' +
@@ -519,10 +516,7 @@
     return '<div class="sheet">' +
       '<div class="sh-head">' +
         '<div><div class="sh-eyebrow">乡音册 · 念稿单</div>' +
-        '<h2>普通话问 · 家乡话答</h2>' +
-        '<p class="sh-sub">第 ' + esc(doc.volume && doc.volume.no) + ' 卷' +
-          ((doc.volume && doc.volume.name) ? ' · ' + esc(doc.volume.name) : '') +
-          (bits.length ? '　|　' + esc(bits.join('　|　')) : '') + '</p></div>' +
+        '<h2>普通话问 · 家乡话答</h2></div>' +
         '<div class="sh-code"><span>包号</span><b>' + esc(doc.packId || '') + '</b></div>' +
       '</div>' +
       '<div class="sh-how">' +

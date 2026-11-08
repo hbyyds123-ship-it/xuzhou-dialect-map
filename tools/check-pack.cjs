@@ -123,7 +123,8 @@ function wavBuf(freq, secs, sr) {
         allAsk:doc.items.every(i=>!!i.ask),
         hasId:doc.items.every(i=>!!i.wordId),
         fmt:doc.format, sheet:!!document.querySelector('.sheet'),
-        row0:(rows[0]?rows[0].innerText:'').replace(/\\s+/g,' ').trim()
+        row0:(rows[0]?rows[0].innerText:'').replace(/\\s+/g,' ').trim(),
+        sheetText:(document.querySelector('.sheet')?document.querySelector('.sheet').innerText:'').replace(/\\s+/g,' ')
       };
     })()`, true);
     check('P1', '开包：条目数=卷内词数、编号 01…N 连续、每条都有 wordId、清单自带建议文件名',
@@ -142,6 +143,13 @@ function wavBuf(freq, secs, sr) {
         x.row0.indexOf('01') === 0 && x.firstAsk && x.row0.indexOf(x.firstAsk) > 0 &&
         x.firstAsk !== x.firstWord && x.row0.indexOf(x.firstWord) < 0);
     }
+
+    /* 纸面上不该出现"这一卷是哪、谁念的" —— 那张纸要能发给任何地方的人 */
+    check('P14', '念稿单上没有卷名/地名/发音人（只有编号、普通话、例句、留白）',
+      p1 && !p1.__err && p1.sheetText &&
+      p1.sheetText.indexOf('徐州') < 0 && p1.sheetText.indexOf('沛县') < 0 &&
+      p1.sheetText.indexOf('王秀兰') < 0 && /普通话问 · 家乡话答/.test(p1.sheetText),
+      p1 && p1.sheetText && p1.sheetText.slice(0, 80));
 
     /* 包的编号顺序必须与纸质问法表一致 —— 否则"照纸念的录音"回来一导就错位 */
     const p13 = await ev(`(()=>{

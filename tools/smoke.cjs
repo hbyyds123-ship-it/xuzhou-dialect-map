@@ -300,6 +300,56 @@ function check(name, ok, extra) {
   // 清掉假录音，别污染后续/其他断言
   await page.evaluate(() => localStorage.removeItem('xzdt.sample.v1'));
 
+  /* ⑩ 一关能不能真的走完
+     此前这里是个真空：测试只验「进得去、退得出」，于是「下一题」从来没被点过 ——
+     那个按钮连点击事件都没绑，第一题答完全世界就停在那里，而 CI 一直全绿。
+     所以这一段必须真的答完一整关。 */
+  await page.goto(base + '#/quiz/3', { waitUntil: 'load' });
+  await page.waitForTimeout(1200);
+  let steps = 0, firstAsk = null, secondAsk = null, blocked = false;
+  for (let i = 0; i < 16; i++) {
+    if (await page.$('.q-result')) break;
+    const opt = await page.$('.q-opt:not([disabled])');
+    if (!opt) { blocked = true; break; }
+    /* 换不换题要看「这个词」本身；.q-ask 是固定问句，比它永远相等 */
+    const askNow = await page.evaluate(() => {
+      const q = document.querySelector('.q-word');
+      return q ? q.textContent.trim() : '';
+    });
+    if (i === 0) firstAsk = askNow;
+    await opt.click();
+    await page.waitForTimeout(220);
+    const nx = await page.$('[data-next]:not([hidden])');
+    if (!nx) { blocked = true; break; }
+    await nx.click();
+    await page.waitForTimeout(320);
+    if (i === 0) {
+      secondAsk = await page.evaluate(() => {
+        const q = document.querySelector('.q-word');
+        return q ? q.textContent.trim() : '';
+      });
+    }
+    steps++;
+  }
+  const fin = await page.evaluate(() => {
+    const S = window.XZ.store.get();
+    const done = (S.levels && S.levels.done) || {};
+    return {
+      result: !!document.querySelector('.q-result'),
+      stars: (document.querySelectorAll('.qr-stars').length ? document.querySelector('.qr-stars').textContent : ''),
+      doneKeys: Object.keys(done),
+      value: S.value || 0,
+      unlocked: window.XZ.selectors.bookProgress().unlocked
+    };
+  });
+  check('答完第一题点「下一题」会换题', !!firstAsk && !!secondAsk && firstAsk !== secondAsk,
+    `第一题「${firstAsk}」→ 第二题「${secondAsk}」`);
+  check('一整关能走完并出结算页', !blocked && fin.result === true && steps >= 4,
+    `步数=${steps} 卡住=${blocked} 结果页=${fin.result}`);
+  check('走完一关会写进存档（通关记录 + 解锁词条）',
+    fin.doneKeys.length > 0 && fin.unlocked > 0 && fin.value > 0,
+    JSON.stringify(fin));
+
   await browser.close();
   srv.close();
 

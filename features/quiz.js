@@ -202,6 +202,20 @@
     Array.prototype.forEach.call(root.querySelectorAll('.q-opt'), function (b) {
       b.addEventListener('click', function () { answer(+b.dataset.i, b); });
     });
+
+    /* 「下一题」必须绑上 —— 它是答完之后唯一能往下走的东西。
+       这里曾经一个字都没写：按钮画出来了、也显示出来了，就是点了没反应，
+       于是每一关都停在第一题。测试一直没发现，是因为此前只验"进得去、退得出"，
+       从来没有真的走完一道题。 */
+    var nx = root.querySelector('[data-next]');
+    if (nx) {
+      var at = q ? q.i : -1;
+      nx.addEventListener('click', function () {
+        /* 防连点：render() 之后 q.i 已经变了，旧按钮不该再推进一次 */
+        if (!q || !q.locked || q.i !== at) return;
+        next();
+      });
+    }
   }
 
   function answer(idx, btn) {

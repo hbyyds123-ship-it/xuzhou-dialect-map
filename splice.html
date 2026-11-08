@@ -212,8 +212,8 @@
     fileInput.value = '';
   });
 
-  function load(file) {
-    $('#fileInfo').textContent = '正在解码 ' + file.name + ' …';
+  function load(file, fromInbox) {
+    $('#fileInfo').textContent = (fromInbox ? '从上一页带过来的：' : '正在解码 ') + file.name + ' …';
     state.file = file;
     var fr = new FileReader();
     fr.onerror = function () { $('#fileInfo').innerHTML = '<span class="warn">这个文件读不出来。</span>'; };
@@ -231,7 +231,10 @@
         state.an = S.analyze(mono.data, mono.sr, { threshold: auto.threshold, minSil: auto.minSil, minSeg: auto.minSeg });
         buildSegs();
         $('#fileInfo').innerHTML = '<b>' + esc(file.name) + '</b> · ' + fmt(mono.data.length / mono.sr) +
-          ' · 解码后单声道 ' + Math.round(mono.sr) + 'Hz（原 ' + ab.sampleRate + 'Hz）';
+          ' · 解码后单声道 ' + Math.round(mono.sr) + 'Hz（原 ' + ab.sampleRate + 'Hz）' +
+          /* 来源要留到解码以后：人是从「导入」那边过来的，看到这一行才知道
+             刚才那个文件真的被带过来了，而不是自己又莫名其妙多了一段录音。 */
+          (fromInbox ? ' · 从上一页带过来的' : '');
         show(true);
         render();
       }).catch(function (e) {
@@ -508,12 +511,11 @@
     });
   });
 
-  /* 从「语言包」那边递过来的录音：直接开，不让用户再找一遍文件 */
+  /* 从「语言包 / 采录页」递过来的录音：直接开，不让用户再找一遍文件 */
   if (window.XZ && window.XZ.inbox) {
     window.XZ.inbox.take().then(function (f) {
       if (!f) return;
-      $('#fileInfo').textContent = '从「语言包」带过来的：' + (f.name || '录音') + '，正在解码…';
-      load(f);
+      load(f, true);
     });
   }
 

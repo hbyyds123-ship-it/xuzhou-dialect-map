@@ -262,8 +262,15 @@
   /* 演示包：一行，不抢主行动的位置 */
   .demo-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; padding-top:12px; border-top:1px dotted var(--rule);}
   .demo-cap{font-size:10px; letter-spacing:.14em; color:var(--ink2); border:1px solid var(--rule); padding:1px 5px;}
-  .demo-tip{font-size:10.5px; color:var(--ink2); line-height:1.7;}
+  .demo-tip{font-size:10.5px; color:var(--ink2); line-height:1.7; flex-basis:100%;}
   .demo-row .ghost{font-size:11.5px; padding:5px 10px;}
+  /* 导入走错门时的常驻说明：toast 六秒就没了，人还没看完 */
+  .demo-hint{margin-top:9px; padding:10px 12px; border:1px solid rgba(193,80,58,.45);
+    background:rgba(193,80,58,.08); font-size:12px; line-height:1.8; color:var(--ink);}
+  .demo-hint b{color:var(--gold); font-weight:600;}
+  .demo-hint a{display:inline-block; margin-top:6px; padding:4px 12px; text-decoration:none;
+    border:1px solid var(--red); color:var(--gold); font-size:12px;}
+  .demo-hint a:hover{background:rgba(193,80,58,.18);}
 </style>
 </head>
 <body>
@@ -392,10 +399,16 @@
       <div class="demo-row">
         <span class="demo-cap">换电脑演示</span>
         <button id="demoExport" class="ghost">导出演示包（含录音）</button>
-        <button id="demoImport" class="ghost">导入演示包</button>
-        <input type="file" id="demoFile" accept=".json,application/json" hidden>
-        <span class="demo-tip">录音在浏览器里，不在安装包里 —— 换机器时用这个把声音带过去。</span>
+        <button id="demoImport" class="ghost">导入演示包 .json</button>
+        <!-- 收音频不是为了在这里解析它，而是为了「对话框里看得见」：
+             只收 .json 时，D 盘里那些 m4a 会被系统直接过滤掉，看起来像文件夹是空的。 -->
+        <input type="file" id="demoFile" accept=".json,application/json,audio/*,.m4a,.mp3,.wav,.aac,.ogg,.oga,.flac,.webm,.mp4" hidden>
+        <button id="audioImport" class="ghost">导入一段录音 → 去切条</button>
+        <input type="file" id="audioFile" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg,.oga,.flac,.webm,.mp4" hidden>
+        <span class="demo-tip">「演示包」只能是本程序导出的 .json（里面装着一条条录音）。手机、录音笔发回来的
+          <b>整段录音不是演示包</b>：点「导入一段录音」把它送进切条页，切开、选词、入库，演示时地图里才播得出来。</span>
       </div>
+      <div class="demo-hint" id="demoHint" hidden></div>
       <p class="note">录音和标注只存在这台电脑的浏览器里。「导出单文件存档」会给你一个双击就能打开的 HTML（音频已内嵌），不需要本程序，也不需要联网。</p>
     </main>
 
@@ -449,6 +462,7 @@
 <script src="../data/volume.js"></script>
 <script src="../data/atlas.js"></script>
 <script src="../features/volumes.js"></script>
+<script src="../features/inbox.js"></script>
 <script src="../core/volume.js"></script>
 <script src="prompts.js"></script>
 <script src="vol-boot.js"></script>

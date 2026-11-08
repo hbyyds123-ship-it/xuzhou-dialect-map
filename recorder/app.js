@@ -878,11 +878,55 @@ function encodeWavBase64(samples, sr) {
     $('#exportJson').addEventListener('click', exportJson);
     $('#exportHtml').addEventListener('click', () => exportHtml().catch((e) => banner('导出失败：' + (e && e.message))));
 
+    /* ================= 演示包 .json / 整段录音：两扇门 =================
+       旧版「导入演示包」的 accept 只写 .json，系统文件对话框会把 m4a/mp3
+       直接过滤掉 —— 用户看到一个空文件夹，以为录音没了。更糟的是绕过过滤器
+       硬塞进来时，程序拿 JSON.parse 去读二进制，回一句 "ftypM4…不是合法 JSON"。
+       现在：对话框里看得见录音，选到了也接得住，直接递去切条页。
+       演示包必须是 xiangyince-demo/1 的 .json，这一点没变，别拿整段录音冒充。 */
+    function clearDemoHint() {
+      const el = $('#demoHint');
+      if (el) { el.hidden = true; el.innerHTML = ''; }
+    }
+    function demoHint(html) {
+      const el = $('#demoHint');
+      if (el) { el.innerHTML = html; el.hidden = false; }
+    }
+
+    /* 递件用 IndexedDB（features/inbox.js），不在 URL 里塞文件名、不往
+       localStorage 写 base64。auto=true：用户明确点了「导入一段录音」，直接跳过去。 */
+    async function handToSplice(f, auto) {
+      const name = esc(f.name || '录音');
+      try {
+        if (!window.XZ || !window.XZ.inbox) throw new Error('这台浏览器没有递件库');
+        await window.XZ.inbox.put(f);
+        demoHint('<b>「' + name + '」不是演示包，是一整段录音。</b><br>' +
+          '演示包只能是本程序导出的 .json（里面装着一条条对好词的录音）。' +
+          '这段要先切开、逐条选词、入库，地图里点词条才播得出来。' +
+          '文件已经替你带过去，' + (auto ? '正在打开切条页…' : '点这里继续：') +
+          '<br><a href="../splice.html">去切条 →</a>');
+        banner(auto ? '已把「' + (f.name || '录音') + '」送到切条页。'
+                    : '这段不是演示包，已经带到切条页 —— 点「去切条 →」继续。');
+        if (auto) setTimeout(() => { location.href = '../splice.html'; }, 350);
+        return true;
+      } catch (e) {
+        banner('没能递给切条页：' + ((e && e.message) || '未知原因') + '。请从顶栏打开「切条」，自己再选一次文件。');
+        return false;
+      }
+    }
+
     /* 演示包：换电脑/换浏览器演示时，把浏览器里的录音带过去 */
     $('#demoExport').addEventListener('click', async () => {
       try {
         const doc = await exportDemo();
-        if (!doc.clips.length) { banner('还没有录音可打包。先录一条，或者这本书本来就还没录。'); return; }
+        if (!doc.clips.length) {
+          banner('还没有录音可打包。要用现成的录音演示，点「导入一段录音 → 去切条」；或者先在本页录一条。');
+          demoHint('<b>本页还没有录过音，所以导不出演示包。</b><br>' +
+            '手机/录音笔里的整段录音不是演示包：点「导入一段录音 → 去切条」，' +
+            '切开、选词、入库之后，地图里就能点词条听了。');
+          return;
+        }
+        clearDemoHint();
         download(demoFileName(), JSON.stringify(doc));
         banner('已导出演示包：' + doc.clips.length + ' 条录音（' + doc.volumeName + '）。在演示机上用「导入演示包」还原。');
       } catch (e) { banner('导出演示包失败：' + ((e && e.message) || '未知原因')); }
@@ -892,15 +936,40 @@ function encodeWavBase64(samples, sr) {
       const f = this.files && this.files[0];
       this.value = '';
       if (!f) return;
+      clearDemoHint();
+      if (isAudioFile(f)) { await handToSplice(f, false); return; }
       let doc = null;
       try { doc = JSON.parse(await f.text()); }
-      catch (e) { banner('这个文件不是合法的 JSON：' + e.message); return; }
+      catch (e) {
+        demoHint('<b>这个文件不是 .json 清单。</b><br>如果你手上是一段 m4a/mp3 录音，' +
+          '别用它导演示包 —— 点「导入一段录音 → 去切条」。');
+        banner('这个文件不是合法的 JSON：' + e.message);
+        return;
+      }
       const r = await importDemo(doc);
-      if (!r.ok) { banner('导入失败：' + (r.errors || []).map((x) => x.msg).join('；')); return; }
+      if (!r.ok) {
+        const msg = (r.errors || []).map((x) => x.msg).join('；');
+        demoHint('<b>导入失败：' + esc(msg) + '</b><br>如果你手上是一段录音，请点「导入一段录音 → 去切条」。');
+        banner('导入失败：' + msg);
+        return;
+      }
       const tail = r.unmatched
         ? '；有 ' + r.unmatched + ' 条的词在本题库里没找到（' + r.missing.join('、') + '）—— 声音还留着，但不会出现在地图的词条里'
         : '';
       banner('已导入 ' + r.count + ' 条录音（来自' + (r.volumeName || '徐州') + '）' + tail + '。');
+    });
+
+    /* 现成录音的正门：选中即递件、即跳切条页，不让人再找一遍文件 */
+    $('#audioImport').addEventListener('click', () => $('#audioFile').click());
+    $('#audioFile').addEventListener('change', async function () {
+      const f = this.files && this.files[0];
+      this.value = '';
+      if (!f) return;
+      clearDemoHint();
+      if (isAudioFile(f)) { await handToSplice(f, true); return; }
+      demoHint('<b>「' + esc(f.name || '文件') + '」不是录音。</b><br>' +
+        '要还原演示包请点「导入演示包 .json」；这一扇门只收整段录音（m4a/mp3/wav…）。');
+      banner('这不是音频文件。演示包请用「导入演示包 .json」。');
     });
     $('#quizBtn').addEventListener('click', () => Quiz.start());
     $('#quizPlay').addEventListener('click', () => Quiz.play());
@@ -1266,6 +1335,14 @@ function encodeWavBase64(samples, sr) {
     return '演示包-' + (V.name || '徐州') + '-' + new Date().toISOString().slice(0, 10) + '.json';
   }
 
+  /* 判别文件种类放在 IIFE 顶层：下面 __probe 要把它交出去给验收脚本，
+     而导入按钮的绑定在 bind() 里面。写在 bind() 里会让 __probe 引用不到
+     （ReferenceError 会让整个稳定测试入口消失，老用例跟着红）。 */
+  function isAudioFile(f) {
+    return !!f && (/^audio\//.test(f.type || '') ||
+      /\.(m4a|mp3|wav|aac|ogg|oga|flac|webm|mp4)$/i.test(f.name || ''));
+  }
+
   window.__probe = {
     Analysis,
     stats,
@@ -1274,6 +1351,7 @@ function encodeWavBase64(samples, sr) {
     store,
     exportDemo,
     importDemo,
+    isAudioFile,
     version: 'r3-fix'
   };
 })();

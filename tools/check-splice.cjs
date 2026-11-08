@@ -284,6 +284,30 @@ function suite(sr) {
       s11a && s11a.link === true && s11b && s11b.rows === 3,
       JSON.stringify({ a: s11a, b: s11b }));
 
+    /* ========== S12 自建卷：下拉里得是「这一卷的词」 ========== */
+    await ev(`localStorage.setItem('xzdt.volumes.v1', JSON.stringify({
+      v:1, active:'u-test', list:[{ id:'u-test', no:2, name:'测试卷',
+      districts:[{id:'d1',name:'东乡'}],
+      words:[{id:'u2w1',w:'小米',meaning:'谷子'},{id:'u2w2',w:'洋火',meaning:'火柴'}] }]
+    }))`, true);
+    await go(`http://127.0.0.1:${PORT}/splice.html?vol=1`, 2400);
+    await setFile('#file', wavPath);
+    await sleep(2600);
+    const s12 = await ev(`(()=>{
+      document.getElementById('fillOrder').click();
+      const sel=[...document.querySelectorAll('#segBody select')];
+      return {
+        vals: sel.map(x=>x.value),
+        labels: sel.slice(0,2).map(x=>(x.selectedOptions[0]||{}).textContent||''),
+        btn: document.getElementById('fillOrder').textContent
+      };
+    })()`, true);
+    check('S12', '自己开的卷：切条页按这一卷的词选词（不是那 54 条样板词）',
+      s12 && !s12.__err && s12.vals[0] === 'u2w1' && s12.vals[1] === 'u2w2' &&
+      /这一卷/.test(s12.btn) && /小米/.test(s12.labels[0] || ''),
+      JSON.stringify(s12));
+    await ev(`localStorage.removeItem('xzdt.volumes.v1')`, true);
+
     /* ========== S9 地图顶栏入口 ========== */
     await go(`http://127.0.0.1:${PORT}/index.html`, 3000);
     const s9 = await ev(`(()=>{

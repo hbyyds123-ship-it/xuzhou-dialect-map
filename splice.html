@@ -155,6 +155,32 @@
   var R = window.XZ.refs;
   var ORDER = window.SHEET_ORDER || [];
 
+  /* 词表跟"当前这一卷"走：自己开的卷里的词不在问法表里，
+     拿 54 条去给自建卷选词，等于每条都选不到。
+     这里直接读 localStorage，不引 features/volumes.js ——
+     那个模块加载时就会 apply() 改写 ATLAS，而这一页不需要地图。 */
+  var VOL_KEY = 'xzdt.volumes.v1';
+  function currentVolume() {
+    try {
+      var db = JSON.parse(localStorage.getItem(VOL_KEY) || 'null');
+      if (!db || !db.active || !Array.isArray(db.list)) return null;
+      for (var i = 0; i < db.list.length; i++) {
+        if (db.list[i].id === db.active) return db.list[i];
+      }
+    } catch (e) {}
+    return null;
+  }
+  var VOL = currentVolume();
+  var LIST = (VOL && VOL.words && VOL.words.length)
+    ? VOL.words.map(function (w, i) {
+        return {
+          no: i + 1, id: w.id, w: w.w,
+          idWord: w.meaning || '', eg: w.example || '',
+          group: '这一卷 · ' + (VOL.name || '')
+        };
+      })
+    : ORDER;
+
   var state = {
     file: null, samples: null, sr: 16000,
     an: null, segs: [], playing: -1,
@@ -299,7 +325,7 @@
   function optsHTML(cur) {
     var html = '<option value="">（还没选）</option>';
     var lastGroup = '';
-    ORDER.forEach(function (o) {
+    LIST.forEach(function (o) {
       var g = o.group || '';
       if (g !== lastGroup) {
         if (lastGroup) html += '</optgroup>';
@@ -412,10 +438,11 @@
   });
 
   /* ---------------- 按顺序填 ---------------- */
+  if (VOL) $('#fillOrder').textContent = '按这一卷的词序填';
   $('#fillOrder').addEventListener('click', function () {
     var k = 0;
     state.segs.forEach(function (g) {
-      if (k < ORDER.length) g.wordId = ORDER[k].id;
+      if (k < LIST.length) g.wordId = LIST[k].id;
       k++;
     });
     render();
@@ -444,7 +471,7 @@
         var name = g.wordId + '.wav';
         var file = new File([blob], name, { type: 'audio/wav' });
         return R.add(g.wordId, file, { name: name, by: by, packId: 'splice' }).then(function () {
-          var w = ORDER.filter(function (o) { return o.id === g.wordId; })[0];
+          var w = LIST.filter(function (o) { return o.id === g.wordId; })[0];
           ok.push((w ? w.w : g.wordId) + (existed ? '（覆盖）' : ''));
           if (existed) over.push(w ? w.w : g.wordId);
         }, function () {

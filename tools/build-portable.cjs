@@ -195,9 +195,28 @@ async function main() {
     ''
   ].join('\r\n'), 'utf8');
 
+  /* 6) 免安装 zip
+     这一步曾经是手工的，结果发出去的 zip 里躺着一个 11-06 的旧 exe，
+     缺「下一题」修复和语言包递件（第 6 轮审计 F1）—— 收到它的人会撞回旧 bug。
+     现在它跟 exe 同一次构建产出，不可能再落后。 */
+  const zipPath = path.join(DIST, VO.title + '-免安装.zip');
+  const txtPath = path.join(DIST, '使用说明.txt');
+  try {
+    const { zip } = require('./zip.cjs');
+    fs.writeFileSync(zipPath, zip([
+      { name: EXE_NAME, data: fs.readFileSync(exe) },
+      { name: '使用说明.txt', data: fs.readFileSync(txtPath) }
+    ]));
+    console.log('· 免安装包 → ' + path.relative(ROOT, zipPath) +
+      '（' + (fs.statSync(zipPath).size / 1048576).toFixed(1) + ' MB）');
+  } catch (e) {
+    console.warn('! 免安装包生成失败（exe 本身可用）：' + e.message);
+  }
+
   console.log('\n✓ 打包完成：');
   console.log('  ' + path.relative(ROOT, exe));
   console.log('  ' + path.relative(ROOT, path.join(DIST, '使用说明.txt')));
+  console.log('  ' + path.relative(ROOT, zipPath));
 }
 
 main().catch((e) => { console.error('\n打包失败：' + e.message); process.exit(1); });

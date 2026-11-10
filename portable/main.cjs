@@ -178,6 +178,13 @@ async function main() {
     checks.push(['卷的导入', volPage.body.includes('导入已有的一卷')]);
     const volJs = await get(base + 'features/volumes.js');
     checks.push(['卷库', volJs.code === 200 && volJs.body.includes('xzdt.volumes.v1') && volJs.body.includes('importJSON')]);
+    // 「测一测」在自建卷里得真的能出题：只写词、不写释义是很正常的用法，
+    // 旧逻辑那时会把干扰项去重成一个空按钮 —— 打包时就要盯住这一条。
+    const quizJs = await get(base + 'features/quiz.js');
+    const boardJs = await get(base + 'features/vol-board.js');
+    checks.push(['测一测', quizJs.code === 200 && quizJs.body.includes('听音辨词') &&
+      quizJs.body.includes('kindOf') && quizJs.body.includes('showEmpty') &&
+      boardJs.code === 200 && boardJs.body.includes('至少 2 个词才能出题')]);
     const aboutJs = await get(base + 'features/about-vol.js');
     checks.push(['关于本卷', aboutJs.code === 200 && aboutJs.body.includes('给你的家乡开一卷')]);
     const three = await get(base + 'vendor/three.min.js');

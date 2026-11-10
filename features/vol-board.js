@@ -45,7 +45,7 @@
       '<div class="vb-acts">' +
         '<button id="vbSample" class="primary">去采录</button>' +
         '<button id="vbAdd">＋ 添词</button>' +
-        '<button id="vbQuiz"' + (vol.words.length < 4 ? ' disabled title="至少 4 个词才能出四选一"' : '') + '>测一测</button>' +
+        '<button id="vbQuiz"' + (vol.words.length < 2 ? ' disabled title="至少 2 个词才能出题"' : '') + '>测一测</button>' +
         '<button id="vbExport">导出这一卷</button>' +
         '<a class="vb-link" href="volumes.html">再开一卷</a>' +
         '<button id="vbAbout" class="vb-quiet">关于本卷</button>' +
@@ -97,7 +97,9 @@
     }
     var q = $('#vbQuiz');
     if (q) {
-      if (vol.words.length < 4) { q.disabled = true; q.title = '至少 4 个词才能出四选一'; }
+      /* 2 个词就能出两选一；选项数随词数自动取 2–4，不再卡死"四选一"。
+         释义写没写决定考法（释义 / 听音辨词），跟能不能测无关。 */
+      if (vol.words.length < 2) { q.disabled = true; q.title = '至少 2 个词才能出题'; }
       else { q.disabled = false; q.removeAttribute('title'); }
     }
   }
@@ -247,6 +249,7 @@
       '<div class="vb-add">' +
         '<textarea id="vbAddText" spellcheck="false" placeholder="茅子 | 厕所 | 问一声茅子在哪儿&#10;洋柿子 | 西红柿"></textarea>' +
         '<p class="vb-add-hint">一行一个词：<code>词 | 释义 | 例句</code>，后两列可以省。' +
+          '写了释义，「测一测」考的是释义；只写词，就考听音辨词（点 ▶ 听，再选是哪个词）。' +
           (d ? '添进来的词先落在「' + esc(d.name) + '」的空处，之后能拖。' : '会轮流摊到各个片区，之后能拖。') +
           '重名的词会被跳过并告诉你。</p>' +
         '<div class="vb-add-act"><button type="button" class="primary" id="vbAddSave">' +
@@ -299,4 +302,11 @@
     V.deactivate();
     location.href = 'index.html';
   });
+
+  /* 自建卷模式下 js/app.js 在开头就 return 了，ROUTER.init() 从来没跑过 ——
+     结果 #/quiz/1、#/d/xxx 这类地址在自建卷里全是死的（按钮能点，手工地址没反应）。
+     本文件是最后一个脚本，quiz/scene 的 handler 这时都已注册，补一次 init 即可。 */
+  if (window.XZ && window.XZ.router && window.XZ.router.init) {
+    try { window.XZ.router.init(); } catch (err) { /* 路由起不来不该把卷板整页拖死 */ }
+  }
 })();

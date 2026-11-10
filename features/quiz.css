@@ -94,6 +94,32 @@
 }
 .q-py { font-size: 12px; letter-spacing: 3px; color: #9c8f7a; margin-bottom: 14px; }
 
+/* 听音题：词不能露字，给个不刺眼的占位 */
+.q-word-hide {
+  font-size: 40px; letter-spacing: 0;
+  color: rgba(248,241,228,.34);
+  text-shadow: none;
+}
+
+/* 出不了题时的说明卡（自建卷词太少 / 一个词都没有） */
+.q-empty {
+  max-width: 460px; margin: 0 auto; padding: 46px 30px;
+  text-align: center;
+}
+.q-empty-mark {
+  font-family: var(--serif); font-size: 30px; letter-spacing: 4px;
+  color: rgba(248,241,228,.72); margin-bottom: 22px;
+}
+.q-empty p {
+  font-size: 13.5px; line-height: 2; color: #a99d8a; margin-bottom: 26px;
+}
+.q-empty-b {
+  padding: 10px 26px; border-radius: 999px; cursor: pointer;
+  background: rgba(232,181,75,.1); border: 1px solid rgba(232,181,75,.34);
+  color: var(--gold); font-size: 12.5px; letter-spacing: 2px; font-family: var(--sans);
+}
+.q-empty-b:hover { background: rgba(232,181,75,.18); }
+
 .q-play {
   display: inline-flex; align-items: center; gap: 7px;
   padding: 8px 16px 9px; border-radius: 999px; cursor: pointer;

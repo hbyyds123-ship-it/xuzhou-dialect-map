@@ -67,6 +67,10 @@ jobs:
       # 「导入演示包」这扇门：accept 不能再只收 .json、整段录音要接得住并递到切条页
       - run: node tools/check-demo-file.cjs
 
+      # 自建卷「测一测」：释义为空时不能只剩一个空按钮（改走听音辨词），
+      # 词太少（1 个）不许出单选题，要给说明卡
+      - run: node tools/check-quiz-vol.cjs
+
       - name: 留一份运行日志与结果
         if: always()
         uses: actions/upload-artifact@v4

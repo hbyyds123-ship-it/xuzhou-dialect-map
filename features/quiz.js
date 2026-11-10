@@ -87,6 +87,16 @@
   }
 
   /* ---------------- 出题 ---------------- */
+  /* 一个词能不能考「释义」，取决于它有没有释义。
+     自建卷里「词 | 释义 | 例句」后两列本来就可以省，只写词是很正常的事；
+     旧逻辑一律拿 meaning 当选项文本，空释义去重后只剩正确项本身，
+     结果就是一题一个空按钮 —— 看起来像"没有选项，只能打勾"。
+     所以每题先判题型：
+       meaning 型 → 选项是释义（原逻辑）
+       listen  型 → 选项是词本身，靠"听发音"辨词，不需要释义 */
+  function kindOf(w) { return (w.meaning && String(w.meaning).trim()) ? 'meaning' : 'listen'; }
+  function textOf(w) { return kindOf(w) === 'meaning' ? String(w.meaning).trim() : (w.w || ''); }
+
   function buildQuestions(levelId) {
     var pool = sel.levelWords(levelId);
     if (!pool.length) return [];
@@ -103,31 +113,44 @@
     }
 
     // 每关最多 6 题，词多的关卡随机抽取
-    return ordered.slice(0, 6).map(function (item) {
-      var sameCat = all.filter(function (w) { return w.id !== item.id && w.cat === item.cat; });
-      var sameDiff = all.filter(function (w) { return w.id !== item.id && w.difficulty === item.difficulty; });
-      var rest = all.filter(function (w) { return w.id !== item.id; });
+    var out = [];
+    ordered.slice(0, 6).forEach(function (item) {
+      var type = kindOf(item);
+      /* 干扰项必须和本题同类型：释义题只能配释义，听音题只能配词，
+         混着配会让选项一半是意思一半是字，看着就乱。 */
+      var same = all.filter(function (w) { return w.id !== item.id && kindOf(w) === type; });
+      var sameCat = same.filter(function (w) { return w.cat === item.cat; });
+      var sameDiff = same.filter(function (w) { return w.difficulty === item.difficulty; });
+      var rest = same;
 
       // 三段都必须洗牌：以前只有最终 opts 洗，而**取哪三个干扰项**是按数据原序定的，
       // 于是同一题的错误选项永远是同三个（背下来就能过）。
       var cand = shuffle(sameCat).concat(shuffle(sameDiff), shuffle(rest));
       var picked = [], used = {};
-      used[item.meaning] = 1;
+      used[textOf(item)] = 1;
 
       for (var i = 0; i < cand.length && picked.length < 3; i++) {
         var c = cand[i];
-        if (used[c.meaning]) continue;
-        used[c.meaning] = 1;
+        var t = textOf(c);
+        if (!t || used[t]) continue;
+        used[t] = 1;
         picked.push(c);
       }
 
+      /* 一个干扰项都凑不出来（整卷只有一个词）就别硬出题：
+         单选题不成立，只会变成一个空按钮。 */
+      if (!picked.length) return;
+
       var opts = shuffle([item].concat(picked)).map(function (o) {
-        return { text: o.meaning, right: o.id === item.id };
+        return { text: textOf(o), right: o.id === item.id };
       });
 
-      return { item: item, opts: opts };
+      out.push({ item: item, type: type, opts: opts });
     });
+
+    return out;
   }
+
 
   /* ---------------- 渲染 ---------------- */
   function render() {
@@ -150,12 +173,18 @@
         '<span class="q-mk"></span></button>';
     }).join('');
 
+    /* 听音题不能把词摆在标题上 —— 选项就是词，一露字这题就白送。
+       只在答完之后由 .q-reveal 揭晓。 */
+    var isListen = cur.type === 'listen';
+    var headName = String(lv.name || '');
+    var headLabel = /^第\s*\d+\s*关/.test(headName) ? headName : '第 ' + lv.id + ' 关 · ' + headName;
+
     root.innerHTML =
       '<div class="stage-inner">' +
       '<div class="q-head">' +
       '<button class="q-close" data-close aria-label="退出">✕</button>' +
       '<div class="q-head-txt">' +
-      '<b>第 ' + lv.id + ' 关 · ' + esc(lv.name) + '</b>' +
+      '<b>' + esc(headLabel) + '</b>' +
       '<span>' + (d ? esc(d.name) + ' · ' : '') + esc(lv.place) + '</span>' +
       '</div>' +
       '<div class="q-head-val">' + S0().value + '<small>方言值</small></div>' +
@@ -164,15 +193,17 @@
       '<div class="q-dots">' + dots + '</div>' +
 
       '<div class="q-body">' +
-      '<div class="q-tags"><span>' + esc(cat.label) + '</span>' +
+      '<div class="q-tags"><span>' + esc(isListen ? '听音辨词' : cat.label) + '</span>' +
       '<span class="q-diff">' + '★'.repeat(item.difficulty) + '</span></div>' +
-      '<div class="q-word">' + esc(item.w) + '</div>' +
-      '<div class="q-py">' + esc(item.py || '') + '</div>' +
+      (isListen
+        ? '<div class="q-word q-word-hide">？</div>'
+        : '<div class="q-word">' + esc(item.w) + '</div>') +
+      '<div class="q-py">' + esc(isListen ? '' : (item.py || '')) + '</div>' +
       '<button class="q-play" data-play>' +
       '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg>' +
       '<span>听发音</span></button>' +
       '<span class="q-src" data-src></span>' +
-      '<div class="q-ask">这句' + esc(DIALECT) + '的意思是？</div>' +
+      '<div class="q-ask">' + (isListen ? '刚才听到的是哪一个词？' : '这句' + esc(DIALECT) + '的意思是？') + '</div>' +
       '</div>' +
 
       '<div class="q-opts">' + opts + '</div>' +
@@ -261,8 +292,9 @@
       '<div class="q-rv-h"><b>' + esc(item.w) + '</b>' +
       '<i>' + esc(item.py || '') + '</i>' +
       '<span class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ 答对 · +10' : '✗ 记一下') + '</span></div>' +
-      '<div class="q-rv-m"><em>释义</em>' + esc(item.meaning) + '</div>' +
-      '<div class="q-rv-e">' + esc(item.example) + '</div>' +
+      /* 自建卷常常没有释义和例句，空着就别印空标签 */
+      (item.meaning ? '<div class="q-rv-m"><em>释义</em>' + esc(item.meaning) + '</div>' : '') +
+      (item.example ? '<div class="q-rv-e">' + esc(item.example) + '</div>' : '') +
       '</div>';
     rv.classList.add('on');
 
@@ -329,6 +361,26 @@
     setTimeout(function () { d.remove(); }, 1000);
   }
 
+  /* 出不了题时不要静默关掉 —— 点了「测一测」什么都没发生，比报错更让人摸不着头脑。 */
+  function showEmpty(lv) {
+    root = document.getElementById('stage');
+    if (!root) return;
+    var pool = sel.levelWords(lv.id);
+    var msg = pool.length
+      ? '这一卷只有 ' + pool.length + ' 个词条，至少要 2 个才能出题。回到卷首页点「＋ 添词」再补几个。'
+      : '这一卷还没有词条。先点「＋ 添词」，或者在采录台录几条再来。';
+    root.className = 'stage on';
+    root.innerHTML =
+      '<div class="stage-inner"><div class="q-empty">' +
+      '<div class="q-empty-mark">测一测</div>' +
+      '<p>' + esc(msg) + '</p>' +
+      '<button class="q-empty-b" data-close>知道了</button>' +
+      '</div></div>';
+    document.body.classList.add('stage-open');
+    var b = root.querySelector('[data-close]');
+    if (b) b.addEventListener('click', function () { api.close(); });
+  }
+
   /* ---------------- 对外 ---------------- */
   var api = {
     el: function () { return root; },
@@ -337,7 +389,7 @@
       var lv = sel.level(levelId);
       if (!lv) { api.close(); return; }
       var qs = buildQuestions(lv.id);
-      if (!qs.length) { api.close(); return; }
+      if (!qs.length) { showEmpty(lv); return; }
 
       root = document.getElementById('stage');
       root.className = 'stage on';

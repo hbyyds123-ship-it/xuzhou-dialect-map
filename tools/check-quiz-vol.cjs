@@ -1,5 +1,5 @@
 /* ============================================================
-   check-quiz-vol.cjs — 自建卷「测一测」回归（Q1–Q6）
+   check-quiz-vol.cjs — 自建卷「测一测」回归（Q1–Q7）
    ------------------------------------------------------------
    为什么要有这个文件：
      自建卷的词条允许「只写词、不写释义」（添词弹层明说后两列可省）。
@@ -215,6 +215,38 @@ const BARE_WORDS = [{ w: '日头' }, { w: '夜来' }, { w: '各拉' }, { w: '挎
     });
     check('Q5', '混合卷：释义题只配释义、听音题只配词，且没有空选项', q5ok,
       JSON.stringify(q5.map((r) => ({ ask: r.ask.slice(0, 12), n: r.opts.length, opts: r.opts }))).slice(0, 500));
+
+    /* ---------- Q7：开页后添词，不刷新就点「测一测」----------
+       用户真实路径：建卷时只写了 1 个词 → 进卷首页 →「＋ 添词」补到 4 个
+       → 直接点「测一测」。旧逻辑里 ATLAS.words 只在开页时同步一次，
+       出题池还停在 1 个词，弹出"这一卷只有 1 个词条"。 */
+    await go(`http://127.0.0.1:${PORT}/volumes.html`, 1500);
+    const v7 = await mkVol([{ w: '日头' }], '后添词县');
+    await go(`http://127.0.0.1:${PORT}/index.html`, 3200);
+    const q7before = await ev(`(() => { const b=document.getElementById('vbQuiz'); return b?!!b.disabled:null; })()`, true);
+    /* 走真实 UI：「＋ 添词」→ 填三行 → 保存（不刷新页面） */
+    const q7add = await ev(`(async () => {
+      const add = document.getElementById('vbAdd'); if (!add) return 'no-addbtn';
+      add.click();
+      await new Promise(r=>setTimeout(r,300));
+      const ta = document.getElementById('vbAddText'); if (!ta) return 'no-textarea';
+      ta.value = '夜来\\n各拉\\n挎包';
+      const sv = document.getElementById('vbAddSave'); if (!sv) return 'no-savebtn';
+      sv.click();
+      await new Promise(r=>setTimeout(r,400));
+      const cur = XZ.volumes.current();
+      const b = document.getElementById('vbQuiz');
+      return 'words:' + (cur ? cur.words.length : -1) + ' disabled:' + (b ? !!b.disabled : '?');
+    })()`, true);
+    await sleep(400);
+    const btn7 = await clickQuiz();
+    await sleep(1400);
+    const q7 = await readAll();
+    const q7ok = q7.length > 0 && q7[0] && !q7[0].empty && q7[0].opts.length >= 2 &&
+      q7[0].opts.every((t) => t && t.trim());
+    check('Q7', '开页后添 3 个词（共 4 个）：不刷新点「测一测」直接出题，不再报「只有 1 个词条」',
+      q7before === true && q7add === 'words:4 disabled:false' && btn7 === 'ok' && q7ok,
+      `before_disabled=${q7before} add=${q7add} click=${btn7} ` + JSON.stringify(q7[0] || null).slice(0, 300));
 
     /* ---------- Q6：第 1 卷（徐州）没被改坏 ---------- */
     await ev(`XZ.volumes.deactivate()`, true);

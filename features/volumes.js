@@ -213,6 +213,13 @@
     if (!write(db)) {
       return { ok: false, errors: [{ code: 'quota', msg: '存不下了：浏览器本地存储已满，先删掉一卷再添' }] };
     }
+
+    /* 添的正是当前这一卷 → 立刻把 ATLAS 同步一遍。
+       不同步的话：apply() 只在开页时跑过一次，ATLAS.words 还是旧词表，
+       卷板按钮看 vol.words（4 个词，能点），出题池看 ATLAS.words（1 个词），
+       结果就是"明明有 4 个词，测一测却说只有 1 个词条"。 */
+    if (db.active === id) apply();
+
     return { ok: true, added: take.length, total: vol.words.length, dups: dups, words: vol.words, volume: vol };
   }
 
@@ -225,7 +232,10 @@
       if (db.list[i].id !== id) continue;
       Object.keys(patch || {}).forEach(function (k) { db.list[i][k] = patch[k]; });
       db.list[i].updatedAt = new Date().toISOString();
-      return write(db) ? db.list[i] : null;
+      if (!write(db)) return null;
+      /* 同 addWords：改了当前卷的词表就要同步 ATLAS，否则出题池拿到旧词表 */
+      if (db.active === id) apply();
+      return db.list[i];
     }
     return null;
   }
